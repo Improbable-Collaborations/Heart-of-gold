@@ -2,8 +2,7 @@
 
 **Ship-wide planning announcements** — chime, Eddie (or Marvin), AI-written narration, ElevenLabs voice, and a live grid synced to audio. Named after the British PA / “attention please” vibe.
 
-**Repository:** [github.com/Improbable-Collaborations/Eddies-Tannoy](https://github.com/Improbable-Collaborations/Eddies-Tannoy)  
-*(GitHub slug `Eddies-Tannoy` — rename the repo from `Tannoy-` in **Settings → General** if you haven’t yet.)*
+**Repository:** [github.com/Improbable-Collaborations/Eddie-s-Tannoy](https://github.com/Improbable-Collaborations/Eddie-s-Tannoy)
 
 **Content source:** Point at a clone of [Planning-Sprint](https://github.com/Improbable-Collaborations/Planning-Sprint) (or any folder with the same `__STARTHERE` layout).
 
