@@ -2,7 +2,7 @@
 
 **Ship-wide planning announcements** — chime, Eddie (or Marvin), AI-written narration, ElevenLabs voice, and a live grid synced to audio. Named after the British PA / “attention please” vibe.
 
-**Repository:** [github.com/Improbable-Collaborations/Eddie-s-Tannoy](https://github.com/Improbable-Collaborations/Eddie-s-Tannoy)
+**Repository:** [github.com/Improbable-Collaborations/Ship-Tannoy](https://github.com/Improbable-Collaborations/Ship-Tannoy) *(Eddie’s Tannoy)*
 
 **Content source:** Point at a clone of [Planning-Sprint](https://github.com/Improbable-Collaborations/Planning-Sprint) (or any folder with the same `__STARTHERE` layout).
 
@@ -11,8 +11,8 @@
 ## Quick start
 
 ```bash
-git clone https://github.com/Improbable-Collaborations/Eddies-Tannoy.git
-cd Eddies-Tannoy
+git clone https://github.com/Improbable-Collaborations/Eddie-s-Tannoy.git
+cd Eddie-s-Tannoy
 npm install
 cp .env.example .env
 # Edit .env — see below
