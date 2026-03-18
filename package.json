@@ -1,7 +1,7 @@
 {
-  "name": "tannoy",
+  "name": "eddies-tannoy",
   "version": "1.0.0",
-  "description": "Tannoy — Planning-Sprint announcements (Eddie/Marvin, TTS, AI narration)",
+  "description": "Eddie's Tannoy — Planning-Sprint announcements (Eddie/Marvin, TTS, AI narration)",
   "scripts": {
     "start": "npx serve . -p 3333",
     "serve": "npx serve . -p 3333",
