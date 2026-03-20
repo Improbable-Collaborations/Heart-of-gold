@@ -481,7 +481,7 @@
     /* ── Mobile responsive ── */
     @media (max-width: 700px) {
       /* Allow the page to scroll instead of being a fixed HUD */
-      html, body { overflow: auto; height: auto; }
+      html, body { overflow-x: hidden; overflow-y: auto; height: auto; }
 
       #skybox-img { position: fixed; width: 100%; }
 
@@ -517,7 +517,12 @@
       #av-circle { width: 64px; height: 64px; font-size: 1.4rem; }
 
       /* Metric and build-stat grids: 2 cols instead of 4 */
-      .metrics-grid, .bm-grid { grid-template-columns: repeat(2, 1fr); }
+      .guide-metrics,
+      .build-metrics-grid { grid-template-columns: repeat(2, 1fr); }
+
+      /* Prevent any horizontal overflow */
+      .stat-row { word-break: break-all; }
+      .val { max-width: 60vw; overflow-wrap: break-word; }
 
       /* Karma gauge: smaller */
       .gauge-svg { width: 80px; height: 80px; }
