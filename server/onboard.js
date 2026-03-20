@@ -147,7 +147,7 @@ function buildMonitorPin(profile, avatarId) {
   };
 }
 
-const OASIS_API_URL = 'https://api.oasisweb4.one';
+const OASIS_API_URL = 'https://api.oasisweb4.com';
 
 /**
  * Register a new OASIS avatar via the hosted API.
