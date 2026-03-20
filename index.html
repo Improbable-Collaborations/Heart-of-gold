@@ -534,6 +534,58 @@
       transition: opacity 1.5s ease;
     }
     #done-glow.visible { opacity: 1; }
+
+    /* ── Mobile responsive ── */
+    @media (max-width: 600px) {
+      /* Marvin: smaller, bottom-left corner, no overlap with dialogue */
+      #marvin-area {
+        bottom: 8rem;
+        left: 0.6rem;
+      }
+      #marvin-sprite { width: 64px; height: 64px; background-size: 320px 128px; }
+      #marvin-sprite.idle      { background-position: 0px 0px; }
+      #marvin-sprite.thinking  { background-position: -64px 0px; }
+      #marvin-sprite.speaking  { animation: marvin-talk-sm 0.35s steps(1) infinite; }
+      #marvin-sprite.listening { background-position: -192px 0px; }
+      #marvin-sprite.done      { background-position: -256px 0px; }
+      @keyframes marvin-talk-sm {
+        0%   { background-position: -128px 0px; }
+        50%  { background-position: -128px -64px; }
+        100% { background-position: -128px 0px; }
+      }
+      .marvin-label { font-size: 8px; }
+
+      /* Dialogue: full width, pushed above input area */
+      #dialogue-wrap {
+        width: calc(100vw - 2rem);
+        left: 1rem; right: 1rem;
+        transform: none;
+        bottom: 8rem;
+      }
+
+      /* Input: full width */
+      #input-area {
+        width: calc(100vw - 1.5rem);
+        left: 0.75rem; right: 0.75rem;
+        transform: none;
+        bottom: 1rem;
+      }
+
+      /* Status bar: hide middle section on very small screens */
+      #sb-step { display: none; }
+
+      /* Avatar card: full width, centred */
+      #avatar-card {
+        right: auto;
+        left: 0.75rem; right: 0.75rem;
+        width: auto;
+        top: 50%; transform: translateY(-50%) translateX(0);
+      }
+      #avatar-card.visible { transform: translateY(-50%); }
+
+      /* Chips: full width */
+      #chips-area { width: calc(100vw - 2rem); }
+    }
   </style>
 </head>
 <body>

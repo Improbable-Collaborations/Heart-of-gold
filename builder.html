@@ -477,6 +477,61 @@
     .edit-btn.primary { background: var(--amber); color: #01020a; }
     .edit-btn.close { border-color: var(--dim); color: var(--dim); }
     .edit-btn:hover { opacity: 0.8; }
+
+    /* ── Mobile responsive ── */
+    @media (max-width: 700px) {
+      /* Allow the page to scroll instead of being a fixed HUD */
+      html, body { overflow: auto; height: auto; }
+
+      #skybox-img { position: fixed; width: 100%; }
+
+      #hud {
+        position: relative;
+        min-height: 100vh;
+      }
+
+      /* Top bar: hide secondary labels, keep essentials */
+      #top-bar {
+        height: auto; min-height: var(--bar-h);
+        flex-wrap: wrap; padding: 0.4rem 0.75rem; gap: 0.3rem;
+      }
+      .tb-subtitle { display: none; }
+      .tb-sep { display: none; }
+      #tb-clock { font-size: 9px; }
+
+      /* Single-column stacking grid */
+      #main-grid {
+        grid-template-columns: 1fr;
+        overflow: visible;
+        height: auto;
+        flex: none;
+      }
+
+      /* Columns: no inner scroll, let the page scroll */
+      #col-left, #col-center, #col-right {
+        overflow: visible;
+        height: auto;
+      }
+
+      /* Avatar circle smaller */
+      #av-circle { width: 64px; height: 64px; font-size: 1.4rem; }
+
+      /* Metric and build-stat grids: 2 cols instead of 4 */
+      .metrics-grid, .bm-grid { grid-template-columns: repeat(2, 1fr); }
+
+      /* Karma gauge: smaller */
+      .gauge-svg { width: 80px; height: 80px; }
+
+      /* Bottom bar: allow wrapping */
+      #bottom-bar {
+        height: auto; min-height: 36px;
+        flex-wrap: wrap; gap: 0.4rem; padding: 0.5rem 0.75rem;
+      }
+      .bb-actions { flex-wrap: wrap; }
+      .bb-label { display: none; }
+      .bb-sep { display: none; }
+      #activity-ticker { display: none; }
+    }
   </style>
 </head>
 <body>
