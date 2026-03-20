@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Builder Profile — Pan Galactic Builders Fund</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --amber:   #c4906a;
+      --amber2:  #e8b48a;
+      --cyan:    #4dd9ff;
+      --green:   #4dffaa;
+      --red:     #ff5566;
+      --dim:     rgba(255,255,255,0.45);
+      --panel-bg: rgba(4, 6, 14, 0.72);
+      --panel-border: rgba(196, 144, 106, 0.35);
+      --panel-glow:   rgba(196, 144, 106, 0.12);
+      --mono: 'Share Tech Mono', monospace;
+      --display: 'Orbitron', monospace;
+      --bar-h: 44px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Subtle shadow so text lifts off the background without killing the glow */
+    .lbl, .val, .tb-label, .tb-subtitle, #tb-clock,
+    .metric-lbl, .bm-lbl, .bb-label, .guide-phase, .progress-pct {
+      text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+    }
+
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #01020a;
+      color: #e2ddd8;
+      font-family: var(--mono);
+      font-size: 16px;
+    }
+
+    /* ── Skybox ── */
+    #skybox-img {
+      position: fixed; inset: 0; z-index: 0;
+      width: 200%; height: 100%; object-fit: cover;
+      animation: skybox-drift 120s linear infinite;
+      filter: brightness(0.45) saturate(1.2);
+      pointer-events: none;
+      will-change: transform;
+    }
+    @keyframes skybox-drift {
+      0%   { transform: translateX(0); }
+      50%  { transform: translateX(-25%); }
+      100% { transform: translateX(0); }
+    }
+
+    /* ── Scan lines ── */
+    #scanlines {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+    }
+
+    /* ── HUD wrapper ── */
+    #hud {
+      position: fixed; inset: 0; z-index: 2;
+      display: flex; flex-direction: column;
+      pointer-events: none;
+    }
+    #hud > * { pointer-events: auto; }
+
+    /* ── Top bar ── */
+    #top-bar {
+      height: var(--bar-h);
+      background: rgba(4, 6, 14, 0.92);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1.2rem;
+      flex-shrink: 0;
+      gap: 1rem;
+    }
+    .tb-section { display: flex; align-items: center; gap: 0.6rem; }
+    .tb-logo {
+      font-family: var(--display);
+      font-size: 0.7rem; font-weight: 700;
+      color: var(--amber2); letter-spacing: 0.15em;
+    }
+    .tb-sep { color: var(--panel-border); }
+    .tb-subtitle { font-size: 0.6rem; color: var(--dim); letter-spacing: 0.1em; }
+    .tb-center {
+      font-family: var(--display);
+      font-size: 0.6rem; letter-spacing: 0.2em;
+      color: var(--amber);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .tb-right { gap: 1rem; }
+    #tb-clock { font-size: 0.65rem; color: var(--dim); letter-spacing: 0.1em; }
+    .tb-badge {
+      font-size: 0.55rem; letter-spacing: 0.12em;
+      padding: 0.2rem 0.6rem;
+      border: 1px solid var(--amber);
+      color: var(--amber); text-transform: uppercase;
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: blink-dot 2s ease-in-out infinite;
+    }
+    @keyframes blink-dot {
+      0%,100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+
+    /* ── Main grid ── */
+    #main-grid {
+      flex: 1; overflow: hidden;
+      display: grid;
+      grid-template-columns: 230px 1fr 210px;
+      gap: 0.5rem;
+      padding: 0.5rem;
+    }
+
+    /* ── Columns ── */
+    #col-left, #col-right, #col-center {
+      display: flex; flex-direction: column; gap: 0.6rem;
+      overflow-y: auto; overflow-x: hidden;
+      min-width: 0; /* critical for grid children */
+      scrollbar-width: thin;
+      scrollbar-color: rgba(196,144,106,0.3) transparent;
+    }
+    #col-left::-webkit-scrollbar,
+    #col-right::-webkit-scrollbar,
+    #col-center::-webkit-scrollbar { width: 3px; }
+    #col-left::-webkit-scrollbar-thumb,
+    #col-right::-webkit-scrollbar-thumb,
+    #col-center::-webkit-scrollbar-thumb { background: rgba(196,144,106,0.3); }
+
+    /* ── Generic panel ── */
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      box-shadow: inset 0 0 20px var(--panel-glow), 0 0 12px rgba(0,0,0,0.4);
+      padding: 0.7rem 0.8rem;
+      overflow: hidden;
+      backdrop-filter: blur(8px);
+      position: relative;
+    }
+    .panel::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--amber), transparent);
+      opacity: 0.5;
+    }
+    .panel-hdr {
+      font-family: var(--display);
+      font-size: 0.6rem; font-weight: 700;
+      letter-spacing: 0.18em; color: var(--amber);
+      text-transform: uppercase;
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(196,144,106,0.2);
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+
+    /* ── Identity panel ── */
+    #panel-identity { flex-shrink: 0; }
+    #av-circle {
+      width: 64px; height: 64px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--display); font-size: 1.3rem; font-weight: 900;
+      color: rgba(0,0,0,0.7);
+      margin: 0 auto 0.6rem;
+      box-shadow: 0 0 20px rgba(196,144,106,0.3);
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+    #av-name {
+      font-family: var(--display); font-size: 0.85rem; font-weight: 700;
+      color: var(--amber2); text-align: center; letter-spacing: 0.08em;
+      margin-bottom: 0.25rem;
+    }
+    #av-location {
+      font-size: 0.65rem; color: var(--dim); text-align: center;
+      margin-bottom: 0.6rem;
+    }
+
+    /* ── Stat rows ── */
+    .stat-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 0.4rem; padding: 0.22rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .lbl {
+      font-size: 11px; color: var(--dim); letter-spacing: 0.08em;
+      text-transform: uppercase; white-space: nowrap;
+    }
+    .val {
+      font-size: 13px; color: #e2ddd8; text-align: right;
+      word-break: break-all;
+    }
+    .val.mono { font-family: var(--mono); font-size: 12px; }
+    .val.xs   { font-size: 11px; }
+    .val.amber { color: var(--amber); }
+    .val.green { color: var(--green); }
+    .val.cyan  { color: var(--cyan); }
+    .val.red   { color: var(--red); }
+    .divider {
+      height: 1px; background: rgba(255,255,255,0.07);
+      margin: 0.5rem 0;
+    }
+    .val.badge {
+      display: inline-block;
+      padding: 0.1rem 0.4rem;
+      font-size: 0.62rem; letter-spacing: 0.1em;
+      border: 1px solid currentColor;
+    }
+    .val.badge.green  { border-color: var(--green); color: var(--green); }
+    .val.badge.amber  { border-color: var(--amber); color: var(--amber); }
+    .val.badge.cyan   { border-color: var(--cyan);  color: var(--cyan); }
+    .val.badge.planning { border-color: var(--amber); color: var(--amber); }
+    a.val { color: var(--cyan); text-decoration: underline; cursor: pointer; }
+
+    /* ── Karma gauge ── */
+    #panel-network { flex-shrink: 0; }
+    .gauge-wrap {
+      position: relative; width: 90px; height: 90px;
+      margin: 0.3rem auto 0.5rem;
+    }
+    #karma-svg { width: 90px; height: 90px; }
+    .gauge-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .gauge-val {
+      font-family: var(--display); font-size: 1rem; font-weight: 700;
+      color: var(--amber2);
+    }
+    .gauge-lbl {
+      font-size: 0.58rem; letter-spacing: 0.15em;
+      color: var(--dim); text-transform: uppercase;
+    }
+
+    /* ── Guide panel ── */
+    #panel-guide { flex-shrink: 0; }
+    #guide-title {
+      font-family: var(--display); font-size: 0.75rem; font-weight: 700;
+      color: var(--amber2); line-height: 1.3;
+      margin-bottom: 0.5rem;
+    }
+    .guide-status-row {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-bottom: 0.5rem;
+    }
+    .status-badge {
+      font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 0.15rem 0.5rem;
+      border: 1px solid var(--amber); color: var(--amber);
+    }
+    .status-badge.active { border-color: var(--green); color: var(--green); }
+    .status-badge.complete { border-color: var(--cyan); color: var(--cyan); }
+    .guide-phase { font-size: 11px; color: var(--dim); }
+
+    /* ── Progress bars ── */
+    .progress-wrap {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 0.6rem;
+    }
+    .progress-wrap.sm { margin-bottom: 0.4rem; }
+    .progress-track {
+      flex: 1; height: 4px;
+      background: rgba(255,255,255,0.08);
+      position: relative; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--amber), var(--amber2));
+      box-shadow: 0 0 6px var(--amber);
+      transition: width 1s ease;
+    }
+    .progress-fill.amber { background: var(--amber); box-shadow: 0 0 4px var(--amber); }
+    .progress-fill.cyan  { background: var(--cyan);  box-shadow: 0 0 4px var(--cyan); }
+    .progress-pct { font-size: 11px; color: var(--dim); white-space: nowrap; }
+
+    /* ── Guide metrics grid ── */
+    .guide-metrics {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 0.3rem; margin-bottom: 0.5rem;
+    }
+    .metric-cell {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(196,144,106,0.15);
+      padding: 0.4rem 0.3rem;
+      text-align: center;
+    }
+    .metric-val {
+      font-family: var(--display); font-size: 0.85rem; font-weight: 700;
+      color: var(--amber2);
+    }
+    .metric-lbl { font-size: 11px; color: var(--dim); margin-top: 0.15rem; letter-spacing: 0.08em; }
+
+    /* ── Phase list ── */
+    .phase-list { display: flex; flex-direction: column; gap: 0.25rem; }
+    .phase-item {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.6rem; color: var(--dim);
+      padding: 0.25rem 0.4rem;
+      border-left: 2px solid rgba(255,255,255,0.08);
+    }
+    .phase-item.active { border-color: var(--amber); color: var(--amber2); }
+    .phase-item.done   { border-color: var(--green); color: var(--green); }
+    .phase-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+    /* ── Build metrics panel ── */
+    #panel-build { flex-shrink: 0; }
+    .build-metrics-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 0.3rem; margin-bottom: 0.5rem;
+    }
+    .bm-cell {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(77,217,255,0.15);
+      padding: 0.45rem 0.3rem; text-align: center;
+    }
+    .bm-val {
+      font-family: var(--display); font-size: 0.9rem; font-weight: 700;
+      color: var(--cyan);
+    }
+    .bm-lbl { font-size: 11px; color: var(--dim); letter-spacing: 0.07em; margin-top: 0.12rem; }
+    .stat-row.mt { margin-top: 0.2rem; }
+
+    /* ── Skills panel ── */
+    #panel-skills { flex-shrink: 0; }
+    #skills-grid {
+      display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.15rem;
+    }
+    .skill-chip {
+      font-size: 0.55rem; letter-spacing: 0.06em;
+      padding: 0.25rem 0.5rem;
+      border: 1px solid rgba(196,144,106,0.4);
+      color: var(--amber); background: rgba(196,144,106,0.06);
+    }
+
+    /* ── Token panel ── */
+    .token-ticker {
+      font-family: var(--display); font-size: 1.6rem; font-weight: 900;
+      color: var(--cyan); text-align: center;
+      padding: 0.3rem 0 0.5rem;
+      letter-spacing: 0.1em;
+    }
+    .token-ticker.active { color: var(--green); text-shadow: 0 0 20px var(--green); }
+
+    /* ── Grant panel ── */
+    .grant-amount {
+      font-family: var(--display); font-size: 1.1rem; font-weight: 700;
+      color: var(--amber2); text-align: center; padding: 0.3rem 0 0.4rem;
+      letter-spacing: 0.08em;
+    }
+    .grant-milestones { display: flex; flex-direction: column; gap: 0.2rem; margin-top: 0.4rem; }
+    .milestone {
+      font-size: 0.55rem; color: var(--dim); padding: 0.15rem 0;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .milestone.done  { color: var(--green); }
+
+    /* ── OASIS panel ── */
+    .panel-link {
+      display: block; margin-top: 0.5rem;
+      font-size: 0.6rem; color: var(--cyan);
+      letter-spacing: 0.06em; text-decoration: none;
+    }
+    .panel-link:hover { text-decoration: underline; }
+
+    /* ── Bottom bar ── */
+    #bottom-bar {
+      height: 36px;
+      background: rgba(4, 6, 14, 0.92);
+      border-top: 1px solid var(--panel-border);
+      display: flex; align-items: center;
+      padding: 0 1rem;
+      gap: 0.8rem;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .bb-label {
+      font-family: var(--display); font-size: 0.62rem; font-weight: 700;
+      color: var(--amber); letter-spacing: 0.15em; white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .bb-sep { width: 1px; height: 18px; background: var(--panel-border); flex-shrink: 0; }
+    .ticker-wrap {
+      flex: 1; overflow: hidden; position: relative; height: 100%;
+      display: flex; align-items: center;
+    }
+    #activity-ticker {
+      white-space: nowrap; font-size: 0.65rem; color: rgba(255,255,255,0.75);
+      animation: ticker-scroll 40s linear infinite;
+      letter-spacing: 0.05em;
+    }
+    @keyframes ticker-scroll {
+      0%   { transform: translateX(100vw); }
+      100% { transform: translateX(-100%); }
+    }
+    .bb-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+    .bb-btn {
+      font-family: var(--display); font-size: 0.62rem; letter-spacing: 0.12em;
+      padding: 0.25rem 0.7rem;
+      border: 1px solid currentColor;
+      color: var(--amber); background: transparent;
+      cursor: pointer; text-decoration: none;
+      white-space: nowrap; display: inline-flex; align-items: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .bb-btn:hover { background: var(--amber); color: #01020a; }
+    .bb-btn.cyan { color: var(--cyan); }
+    .bb-btn.cyan:hover { background: var(--cyan); color: #01020a; }
+
+    /* ── Corner decorators ── */
+    .corner-tl, .corner-tr, .corner-bl, .corner-br {
+      position: fixed; width: 24px; height: 24px;
+      z-index: 3; pointer-events: none;
+      opacity: 0.5;
+    }
+    .corner-tl { top: calc(var(--bar-h) + 0.6rem); left: 0.6rem;
+      border-top: 1px solid var(--amber); border-left: 1px solid var(--amber); }
+    .corner-tr { top: calc(var(--bar-h) + 0.6rem); right: 0.6rem;
+      border-top: 1px solid var(--amber); border-right: 1px solid var(--amber); }
+    .corner-bl { bottom: 36px; left: 0.6rem;
+      border-bottom: 1px solid var(--amber); border-left: 1px solid var(--amber); }
+    .corner-br { bottom: 36px; right: 0.6rem;
+      border-bottom: 1px solid var(--amber); border-right: 1px solid var(--amber); }
+
+    /* ── Edit overlay ── */
+    #edit-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 10;
+      background: rgba(4,6,14,0.92);
+      backdrop-filter: blur(12px);
+      align-items: center; justify-content: center;
+    }
+    #edit-overlay.visible { display: flex; }
+    #edit-modal {
+      background: rgba(4,6,14,0.95);
+      border: 1px solid var(--amber);
+      box-shadow: 0 0 40px rgba(196,144,106,0.2);
+      padding: 1.5rem 2rem;
+      width: min(520px, 90vw);
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    #edit-modal h2 {
+      font-family: var(--display); font-size: 0.7rem; font-weight: 700;
+      color: var(--amber); letter-spacing: 0.2em; margin-bottom: 1rem;
+    }
+    .edit-row { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.7rem; }
+    .edit-row label { font-size: 0.65rem; color: var(--dim); letter-spacing: 0.08em; text-transform: uppercase; }
+    .edit-row input, .edit-row select, .edit-row textarea {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(196,144,106,0.3);
+      color: #e2ddd8; padding: 0.4rem 0.6rem;
+      font-family: var(--mono); font-size: 0.65rem;
+      outline: none; width: 100%;
+    }
+    .edit-row input:focus, .edit-row textarea:focus { border-color: var(--amber); }
+    .edit-row textarea { resize: vertical; min-height: 60px; }
+    .edit-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1rem; }
+    .edit-btn {
+      font-family: var(--display); font-size: 0.62rem; letter-spacing: 0.12em;
+      padding: 0.35rem 0.9rem;
+      border: 1px solid var(--amber); color: var(--amber);
+      background: transparent; cursor: pointer;
+    }
+    .edit-btn.primary { background: var(--amber); color: #01020a; }
+    .edit-btn.close { border-color: var(--dim); color: var(--dim); }
+    .edit-btn:hover { opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+<img id="skybox-img" alt="" aria-hidden="true">
+<div id="scanlines"></div>
+
+<!-- Corner decorators -->
+<div class="corner-tl"></div>
+<div class="corner-tr"></div>
+<div class="corner-bl"></div>
+<div class="corner-br"></div>
+
+<div id="hud">
+
+  <!-- ── TOP BAR ── -->
+  <header id="top-bar">
+    <div class="tb-section tb-left">
+      <span class="tb-logo">⬡ HEART OF GOLD</span>
+      <span class="tb-sep">·</span>
+      <span class="tb-subtitle">BUILDERS FUND COMMAND</span>
+    </div>
+    <div class="tb-section tb-center">
+      <span class="status-dot"></span>
+      BUILDER PROFILE — ACTIVE SESSION
+    </div>
+    <div class="tb-section tb-right">
+      <span id="tb-clock">00:00:00 UTC</span>
+      <span class="tb-badge">CLEARANCE: BUILDER</span>
+    </div>
+  </header>
+
+  <!-- ── MAIN GRID ── -->
+  <main id="main-grid">
+
+    <!-- LEFT COLUMN -->
+    <div id="col-left">
+
+      <div class="panel" id="panel-identity">
+        <div class="panel-hdr">⬡ AVATAR IDENTITY</div>
+        <div id="av-circle">??</div>
+        <div id="av-name">Loading…</div>
+        <div id="av-location">—</div>
+        <div class="divider"></div>
+        <div class="stat-row"><span class="lbl">Joined</span><span class="val" id="av-joined">—</span></div>
+        <div class="stat-row"><span class="lbl">OASIS ID</span><span class="val mono xs" id="av-oasis-id">—</span></div>
+        <div class="stat-row"><span class="lbl">GitHub</span><span class="val cyan" id="av-github">—</span></div>
+        <div class="stat-row"><span class="lbl">Email</span><span class="val" id="av-email">—</span></div>
+        <div class="stat-row"><span class="lbl">Mission</span>
+          <span class="val" id="av-bio" style="text-align:right;font-size:0.65rem;color:var(--dim)">—</span>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-network">
+        <div class="panel-hdr">⬡ NETWORK STATUS</div>
+        <div class="gauge-wrap">
+          <svg id="karma-svg" viewBox="0 0 90 90"></svg>
+          <div class="gauge-center">
+            <div class="gauge-val" id="karma-val">0</div>
+            <div class="gauge-lbl">KARMA ⬡</div>
+          </div>
+        </div>
+        <div class="stat-row"><span class="lbl">Tier</span>
+          <span class="val badge amber" id="net-tier">INITIATE</span>
+        </div>
+        <div class="stat-row"><span class="lbl">Hours Pledged</span><span class="val" id="net-pledged">0 h</span></div>
+        <div class="stat-row"><span class="lbl">Hours Exchanged</span><span class="val" id="net-exchanged">0 h</span></div>
+        <div class="stat-row"><span class="lbl">Connections</span><span class="val" id="net-connections">0</span></div>
+        <div class="stat-row"><span class="lbl">Cohort</span><span class="val" id="net-cohort">2026 — Alpha</span></div>
+      </div>
+
+    </div>
+
+    <!-- CENTER COLUMN -->
+    <div id="col-center">
+
+      <div class="panel" id="panel-guide">
+        <div class="panel-hdr">⬡ ACTIVE GUIDE</div>
+        <div id="guide-title">—</div>
+        <div class="guide-status-row">
+          <span class="status-badge planning" id="guide-status-badge">PLANNING</span>
+          <span class="guide-phase" id="guide-phase">Phase 1 of 4 · Research</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-track">
+            <div class="progress-fill" id="guide-progress-fill" style="width:3%"></div>
+          </div>
+          <span class="progress-pct" id="guide-progress-pct">3%</span>
+        </div>
+        <div class="guide-metrics">
+          <div class="metric-cell">
+            <div class="metric-val" id="gm-hours">0 h</div>
+            <div class="metric-lbl">Hours Logged</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val" id="gm-chapters">0</div>
+            <div class="metric-lbl">Chapters</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val" id="gm-words">0</div>
+            <div class="metric-lbl">Words</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val" id="gm-interviews">0</div>
+            <div class="metric-lbl">Interviews</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="phase-list" id="phase-list"></div>
+      </div>
+
+      <div class="panel" id="panel-build">
+        <div class="panel-hdr">⬡ BUILD METRICS</div>
+        <div class="build-metrics-grid">
+          <div class="bm-cell">
+            <div class="bm-val" id="bm-commits">0</div>
+            <div class="bm-lbl">COMMITS (7d)</div>
+          </div>
+          <div class="bm-cell">
+            <div class="bm-val" id="bm-streak">0</div>
+            <div class="bm-lbl">DAY STREAK</div>
+          </div>
+          <div class="bm-cell">
+            <div class="bm-val" id="bm-lines">0</div>
+            <div class="bm-lbl">LINES ADDED</div>
+          </div>
+          <div class="bm-cell">
+            <div class="bm-val" id="bm-stars">0</div>
+            <div class="bm-lbl">REPO STARS</div>
+          </div>
+        </div>
+        <div class="stat-row mt"><span class="lbl">Top Repo</span><span class="val cyan" id="bm-top-repo">—</span></div>
+        <div class="stat-row"><span class="lbl">Last Commit</span><span class="val" id="bm-last-commit">—</span></div>
+        <div class="stat-row"><span class="lbl">Languages</span><span class="val" id="bm-langs">—</span></div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div id="col-right">
+
+      <div class="panel" id="panel-skills">
+        <div class="panel-hdr">⬡ SKILLS · EXPERTISE</div>
+        <div id="skills-grid"></div>
+      </div>
+
+      <div class="panel" id="panel-token">
+        <div class="panel-hdr">⬡ TOKEN STATUS</div>
+        <div class="token-ticker" id="token-ticker">—</div>
+        <div class="stat-row"><span class="lbl">Launchpad</span><span class="val cyan" id="token-launchpad">OpenSERV</span></div>
+        <div class="stat-row"><span class="lbl">Status</span><span class="val badge planning" id="token-status-val">PLANNING</span></div>
+        <div class="stat-row"><span class="lbl">Launch ETA</span><span class="val" id="token-eta">TBD</span></div>
+        <div class="stat-row"><span class="lbl">Description</span><span class="val" id="token-desc" style="font-size:0.65rem;color:var(--dim)">—</span></div>
+      </div>
+
+      <div class="panel" id="panel-grant">
+        <div class="panel-hdr">⬡ BUILDERS GRANT</div>
+        <div class="grant-amount" id="grant-amount">APPLIED</div>
+        <div class="stat-row"><span class="lbl">Status</span><span class="val badge amber" id="grant-status">PENDING REVIEW</span></div>
+        <div class="progress-wrap sm" style="margin-top:0.4rem">
+          <div class="progress-track">
+            <div class="progress-fill amber" id="grant-progress" style="width:15%"></div>
+          </div>
+          <span class="progress-pct">15%</span>
+        </div>
+        <div class="grant-milestones" id="grant-milestones"></div>
+      </div>
+
+      <div class="panel" id="panel-oasis">
+        <div class="panel-hdr">⬡ OASIS AVATAR</div>
+        <div class="stat-row"><span class="lbl">Status</span><span class="val amber" id="oasis-status-val">—</span></div>
+        <div class="stat-row"><span class="lbl">Username</span><span class="val mono" id="oasis-username">—</span></div>
+        <div class="stat-row"><span class="lbl">Temp Password</span><span class="val mono" id="oasis-password">—</span></div>
+        <a href="https://oasisweb4.one" target="_blank" class="panel-link">→ Login at oasisweb4.one</a>
+        <div style="font-size:0.62rem;color:var(--dim);margin-top:0.3rem">Verify email to fully activate avatar</div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── BOTTOM BAR ── -->
+  <footer id="bottom-bar">
+    <span class="bb-label">⬡ LOG</span>
+    <div class="bb-sep"></div>
+    <div class="ticker-wrap"><div id="activity-ticker"></div></div>
+    <div class="bb-sep"></div>
+    <div class="bb-actions">
+      <a class="bb-btn" id="btn-edit" href="#">✎ EDIT PROFILE</a>
+      <a class="bb-btn cyan" id="btn-monitor" href="#" target="_blank">⬡ VIEW ON GLOBE</a>
+      <a class="bb-btn" href="onboard.html">↺ RE-ONBOARD</a>
+    </div>
+  </footer>
+
+</div>
+
+<!-- ── EDIT MODAL ── -->
+<div id="edit-overlay">
+  <div id="edit-modal">
+    <h2>⬡ EDIT BUILDER PROFILE</h2>
+    <div class="edit-row">
+      <label>Mission statement / Bio</label>
+      <textarea id="ef-bio" rows="3" placeholder="What are you building and why?"></textarea>
+    </div>
+    <div class="edit-row">
+      <label>Guide status</label>
+      <select id="ef-guide-status">
+        <option value="planning">Planning</option>
+        <option value="research">Research phase</option>
+        <option value="drafting">Drafting</option>
+        <option value="editing">Editing</option>
+        <option value="published">Published</option>
+      </select>
+    </div>
+    <div class="edit-row">
+      <label>Hours logged (total)</label>
+      <input type="number" id="ef-hours" min="0" placeholder="0">
+    </div>
+    <div class="edit-row">
+      <label>Chapters completed</label>
+      <input type="number" id="ef-chapters" min="0" placeholder="0">
+    </div>
+    <div class="edit-row">
+      <label>Words written</label>
+      <input type="number" id="ef-words" min="0" placeholder="0">
+    </div>
+    <div class="edit-row">
+      <label>Interviews conducted</label>
+      <input type="number" id="ef-interviews" min="0" placeholder="0">
+    </div>
+    <div class="edit-row">
+      <label>Token ticker (e.g. $SAFE)</label>
+      <input type="text" id="ef-ticker" placeholder="—">
+    </div>
+    <div class="edit-row">
+      <label>Token description</label>
+      <input type="text" id="ef-token-desc" placeholder="Guide governance + tip token">
+    </div>
+    <div class="edit-row">
+      <label>Twitter / X handle</label>
+      <input type="text" id="ef-twitter" placeholder="@handle">
+    </div>
+    <div class="edit-row">
+      <label>Personal site</label>
+      <input type="text" id="ef-site" placeholder="https://…">
+    </div>
+    <div class="edit-actions">
+      <button class="edit-btn close" id="btn-edit-close">Cancel</button>
+      <button class="edit-btn primary" id="btn-edit-save">Save to OASIS</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+
+/* ── Constants ─────────────────────────────────────────────────────────── */
+const HOG_SKYBOX = 'hog-skybox.jpg'; // local copy — generated via Blockade Labs from the Heart of Gold brief
+const SERVER_BASE = 'http://localhost:3334';
+const MONITOR_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3142'
+  : 'https://pan-galactic-monitor.vercel.app';
+
+const GUIDE_LABELS = {
+  ai_safety: "Hitchhiker's Guide to AI Safety",
+  defi:      "Hitchhiker's Guide to DeFi",
+  dao:       "Hitchhiker's Guide to DAOs",
+  longevity: "Hitchhiker's Guide to Longevity",
+  web3:      "Hitchhiker's Guide to Web3 Building",
+  climate:   "Hitchhiker's Guide to Climate Tech",
+  other:     'Independent Guide',
+};
+
+const PHASES = [
+  { id: 'planning',  label: 'Planning & Scoping' },
+  { id: 'research',  label: 'Research & Interviews' },
+  { id: 'drafting',  label: 'Drafting Chapters' },
+  { id: 'editing',   label: 'Editing & Review' },
+  { id: 'published', label: 'Published & Live' },
+];
+
+const GRANT_MILESTONES = [
+  { text: 'Application submitted', done: true },
+  { text: 'Initial review',        done: false },
+  { text: 'Community vote',        done: false },
+  { text: 'Funds allocated',       done: false },
+];
+
+/* ── Profile loading ────────────────────────────────────────────────────── */
+function loadProfile() {
+  const params = new URLSearchParams(window.location.search);
+  const p = params.get('p');
+  if (p) {
+    try {
+      const profile = JSON.parse(decodeURIComponent(escape(atob(p))));
+      // Merge with any saved edits
+      const saved = localStorage.getItem(`hog_profile_${profile.id || 'default'}`);
+      const merged = saved ? { ...profile, ...JSON.parse(saved) } : profile;
+      localStorage.setItem(`hog_profile_${merged.id || 'default'}`, JSON.stringify(merged));
+      return merged;
+    } catch(e) { console.warn('Profile param decode error', e); }
+  }
+  // Try last saved profile
+  const lastId = localStorage.getItem('hog_last_profile_id');
+  if (lastId) {
+    const saved = localStorage.getItem(`hog_profile_${lastId}`);
+    if (saved) { try { return JSON.parse(saved); } catch {} }
+  }
+  return SAMPLE_PROFILE;
+}
+
+function saveProfile(profile) {
+  localStorage.setItem(`hog_profile_${profile.id || 'default'}`, JSON.stringify(profile));
+  localStorage.setItem('hog_last_profile_id', profile.id || 'default');
+}
+
+const SAMPLE_PROFILE = {
+  id: 'builder-sample-42',
+  name: 'Arthur Dent',
+  initials: 'AD',
+  color: '#c4906a',
+  email: 'arthur@magrathea.space',
+  location: 'Cottington, England',
+  lat: 51.5, lng: -0.1,
+  skills: ['Research / Analysis', 'Writing / Content'],
+  guide: 'ai_safety',
+  github: 'arthurdent',
+  joinedAt: new Date().toISOString(),
+  oasis: { username: 'arthur-dent-builder', password: 'Builder-42XYZ!', avatarId: '00000000-0042-0042-0042-000000000042', status: 'verify_email' },
+  _edits: {},
+};
+
+/* ── Skybox ─────────────────────────────────────────────────────────────── */
+const profile = loadProfile();
+const skyboxUrl = profile.worldUrl || HOG_SKYBOX;
+document.getElementById('skybox-img').src = skyboxUrl;
+
+/* ── Live clock ─────────────────────────────────────────────────────────── */
+function updateClock() {
+  const now = new Date();
+  const hh = String(now.getUTCHours()).padStart(2,'0');
+  const mm = String(now.getUTCMinutes()).padStart(2,'0');
+  const ss = String(now.getUTCSeconds()).padStart(2,'0');
+  document.getElementById('tb-clock').textContent = `${hh}:${mm}:${ss} UTC`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* ── Populate HUD ───────────────────────────────────────────────────────── */
+function populateHUD(p) {
+  const ed = p._edits || {};
+
+  /* Identity */
+  const circle = document.getElementById('av-circle');
+  circle.textContent  = p.initials || '??';
+  circle.style.background = p.color || '#c4906a';
+  document.getElementById('av-name').textContent = p.name || '—';
+  document.getElementById('av-location').innerHTML =
+    `<span style="opacity:.5">📍</span> ${p.location || '—'}`;
+  document.getElementById('av-joined').textContent = p.joinedAt
+    ? new Date(p.joinedAt).toLocaleDateString('en-GB',{ day:'2-digit', month:'short', year:'numeric' })
+    : '—';
+  const oasisId = p.oasis?.avatarId || p.id || '—';
+  document.getElementById('av-oasis-id').textContent = oasisId;
+  const ghEl = document.getElementById('av-github');
+  if (p.github) {
+    ghEl.innerHTML = `<a href="https://github.com/${p.github}" target="_blank" class="val cyan">@${p.github}</a>`;
+  } else { ghEl.textContent = '—'; }
+  document.getElementById('av-email').textContent = maskEmail(p.email);
+  document.getElementById('av-bio').textContent = ed.bio || 'Mission statement pending…';
+
+  /* Karma gauge */
+  const karma = ed.karma || 0;
+  document.getElementById('karma-val').textContent = karma;
+  renderKarmaGauge(karma);
+  document.getElementById('net-pledged').textContent   = `${ed.hoursPledged   || 0} h`;
+  document.getElementById('net-exchanged').textContent = `${ed.hoursExchanged || 0} h`;
+  document.getElementById('net-connections').textContent = ed.connections || '0';
+
+  /* Guide */
+  const guideTitle = GUIDE_LABELS[p.guide] || p.guide || '—';
+  document.getElementById('guide-title').textContent = guideTitle;
+  const guideStatus = ed.guideStatus || 'planning';
+  const statusBadge = document.getElementById('guide-status-badge');
+  statusBadge.textContent = guideStatus.replace(/_/g,' ').toUpperCase();
+  statusBadge.className = `status-badge ${guideStatus}`;
+
+  const phaseIdx = PHASES.findIndex(ph => ph.id === guideStatus);
+  const phaseNum  = Math.max(0, phaseIdx);
+  document.getElementById('guide-phase').textContent =
+    `Phase ${phaseNum + 1} of ${PHASES.length} · ${PHASES[phaseNum]?.label || 'Research'}`;
+
+  const pct = Math.round((phaseNum / (PHASES.length - 1)) * 100);
+  document.getElementById('guide-progress-fill').style.width = `${pct}%`;
+  document.getElementById('guide-progress-pct').textContent  = `${pct}%`;
+
+  document.getElementById('gm-hours').textContent      = `${ed.hoursLogged   || 0} h`;
+  document.getElementById('gm-chapters').textContent   = ed.chapters   || '0';
+  document.getElementById('gm-words').textContent      = (ed.words      || 0).toLocaleString();
+  document.getElementById('gm-interviews').textContent = ed.interviews  || '0';
+
+  /* Phase list */
+  const phaseList = document.getElementById('phase-list');
+  phaseList.innerHTML = '';
+  PHASES.forEach((ph, i) => {
+    const div = document.createElement('div');
+    const cls = i < phaseNum ? 'done' : i === phaseNum ? 'active' : '';
+    div.className = `phase-item ${cls}`;
+    div.innerHTML = `<span class="phase-dot"></span> ${ph.label}`;
+    phaseList.appendChild(div);
+  });
+
+  /* Build metrics */
+  document.getElementById('bm-commits').textContent    = ed.commits    || '0';
+  document.getElementById('bm-streak').textContent     = ed.streak     || '0';
+  document.getElementById('bm-lines').textContent      = (ed.linesAdded || 0).toLocaleString();
+  document.getElementById('bm-stars').textContent      = ed.repoStars  || '0';
+  document.getElementById('bm-top-repo').textContent   = ed.topRepo    || (p.github ? `${p.github}/guide-repo` : '—');
+  document.getElementById('bm-last-commit').textContent = ed.lastCommit || 'Not yet logged';
+  document.getElementById('bm-langs').textContent      = ed.languages  || 'Markdown · Python';
+
+  /* Skills */
+  const skillsGrid = document.getElementById('skills-grid');
+  skillsGrid.innerHTML = '';
+  (p.skills || []).forEach(s => {
+    const chip = document.createElement('div');
+    chip.className = 'skill-chip';
+    chip.textContent = s;
+    skillsGrid.appendChild(chip);
+  });
+
+  /* Token */
+  const ticker = ed.tokenTicker || '';
+  document.getElementById('token-ticker').textContent = ticker || '—';
+  document.getElementById('token-ticker').className   = `token-ticker ${ticker ? 'active' : ''}`;
+  document.getElementById('token-launchpad').textContent = 'OpenSERV';
+  document.getElementById('token-status-val').textContent = (ed.tokenStatus || 'PLANNING').toUpperCase();
+  document.getElementById('token-eta').textContent       = ed.tokenEta   || 'TBD';
+  document.getElementById('token-desc').textContent      = ed.tokenDesc  || 'Guide governance + tip token';
+
+  /* Grant */
+  document.getElementById('grant-amount').textContent = ed.grantAmount ? `$${ed.grantAmount.toLocaleString()}` : 'APPLIED';
+  renderGrantMilestones(ed.grantMilestone || 0);
+
+  /* OASIS */
+  const osStatus = { ok:'ACTIVE', verify_email:'VERIFY EMAIL', error:'ERROR', skipped:'NOT SET' };
+  document.getElementById('oasis-status-val').textContent = osStatus[p.oasis?.status] || (p.oasis?.status || '').toUpperCase();
+  document.getElementById('oasis-username').textContent   = p.oasis?.username || '—';
+  document.getElementById('oasis-password').textContent   = p.oasis?.password || '—';
+
+  /* Monitor link */
+  buildMonitorLink(p);
+
+  /* Activity ticker */
+  buildTicker(p, guideTitle);
+}
+
+function renderKarmaGauge(value) {
+  const r = 34, cx = 45, cy = 45;
+  const circumference = 2 * Math.PI * r;
+  const pct = Math.min(Math.max(value, 0) / 500, 1);
+  const dash = pct * circumference;
+  const offset = circumference * 0.25;
+  document.getElementById('karma-svg').innerHTML = `
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(196,144,106,0.12)" stroke-width="5"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#c4906a" stroke-width="5"
+      stroke-dasharray="${dash.toFixed(1)} ${circumference.toFixed(1)}"
+      stroke-dashoffset="${offset.toFixed(1)}"
+      stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
+    <circle cx="${cx}" cy="${cy}" r="${r - 12}" fill="none" stroke="rgba(196,144,106,0.06)" stroke-width="1"/>
+  `;
+}
+
+function renderGrantMilestones(achieved) {
+  const el = document.getElementById('grant-milestones');
+  el.innerHTML = '';
+  GRANT_MILESTONES.forEach((m, i) => {
+    const div = document.createElement('div');
+    const done = i <= achieved;
+    div.className = `milestone ${done ? 'done' : 'pending'}`;
+    div.textContent = `${done ? '✓' : '○'} ${m.text}`;
+    el.appendChild(div);
+  });
+  const pct = Math.round((achieved / (GRANT_MILESTONES.length - 1)) * 100);
+  document.getElementById('grant-progress').style.width = `${pct}%`;
+}
+
+function buildMonitorLink(p) {
+  const pin = {
+    id: p.oasis?.avatarId || p.id,
+    pinType: 'builder', name: p.name,
+    lat: p.lat || 51.5, lng: p.lng || -0.1,
+    city: p.location, country: '',
+    status: 'active',
+    summary: `Building ${GUIDE_LABELS[p.guide] || p.guide} on OpenSERV stack.`,
+    person: { name: p.name, initials: p.initials, org: 'Pan Galactic Builders' },
+    guideOutput: GUIDE_LABELS[p.guide] || p.guide,
+    guideStatus: 'planning',
+    hoursLogged: p._edits?.hoursLogged || 0,
+    skills: p.skills || [],
+    github: { username: p.github || '' },
+    token: { status: 'planning', ticker: p._edits?.tokenTicker || '' },
+    buildersGrant: { status: 'applied' },
+    _new: !p._edits?.hoursLogged,
+  };
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(pin))));
+    document.getElementById('btn-monitor').href = `${MONITOR_URL}?builder=${encoded}`;
+  } catch {}
+}
+
+function buildTicker(p, guideTitle) {
+  const now = new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', timeZone:'UTC' });
+  const events = [
+    `${p.name || 'Builder'} registered as a builder at ${now} UTC`,
+    `OASIS Avatar created — ID ${(p.oasis?.avatarId || p.id || '').slice(0,8)}…`,
+    `Guide selected: ${guideTitle}`,
+    `Builders Grant application submitted — status: PENDING REVIEW`,
+    `Pan Galactic Builders Fund — Alpha Cohort 2026`,
+    `Heart of Gold — first spacecraft to use the Infinite Improbability Drive`,
+    `Don't Panic.`,
+  ];
+  document.getElementById('activity-ticker').textContent =
+    events.map(e => `• ${e}`).join('   ···   ') + '   ···   ';
+}
+
+function maskEmail(email) {
+  if (!email) return '—';
+  const parts = email.split('@');
+  if (parts.length < 2) return email;
+  return `${parts[0].slice(0,2)}***@${parts[1]}`;
+}
+
+/* ── Edit modal ─────────────────────────────────────────────────────────── */
+const editOverlay  = document.getElementById('edit-overlay');
+let currentProfile = profile;
+
+document.getElementById('btn-edit').addEventListener('click', (e) => {
+  e.preventDefault();
+  openEditModal(currentProfile);
+});
+document.getElementById('btn-edit-close').addEventListener('click', () => {
+  editOverlay.classList.remove('visible');
+});
+editOverlay.addEventListener('click', (e) => {
+  if (e.target === editOverlay) editOverlay.classList.remove('visible');
+});
+
+function openEditModal(p) {
+  const ed = p._edits || {};
+  document.getElementById('ef-bio').value          = ed.bio          || '';
+  document.getElementById('ef-guide-status').value = ed.guideStatus  || 'planning';
+  document.getElementById('ef-hours').value        = ed.hoursLogged  || 0;
+  document.getElementById('ef-chapters').value     = ed.chapters     || 0;
+  document.getElementById('ef-words').value        = ed.words        || 0;
+  document.getElementById('ef-interviews').value   = ed.interviews   || 0;
+  document.getElementById('ef-ticker').value       = ed.tokenTicker  || '';
+  document.getElementById('ef-token-desc').value   = ed.tokenDesc    || '';
+  document.getElementById('ef-twitter').value      = ed.twitter      || '';
+  document.getElementById('ef-site').value         = ed.site         || '';
+  editOverlay.classList.add('visible');
+}
+
+document.getElementById('btn-edit-save').addEventListener('click', async () => {
+  const ed = currentProfile._edits || {};
+  currentProfile._edits = {
+    ...ed,
+    bio:          document.getElementById('ef-bio').value,
+    guideStatus:  document.getElementById('ef-guide-status').value,
+    hoursLogged:  Number(document.getElementById('ef-hours').value)        || 0,
+    chapters:     Number(document.getElementById('ef-chapters').value)     || 0,
+    words:        Number(document.getElementById('ef-words').value)        || 0,
+    interviews:   Number(document.getElementById('ef-interviews').value)   || 0,
+    tokenTicker:  document.getElementById('ef-ticker').value.trim().toUpperCase(),
+    tokenDesc:    document.getElementById('ef-token-desc').value,
+    twitter:      document.getElementById('ef-twitter').value,
+    site:         document.getElementById('ef-site').value,
+  };
+
+  // Save locally
+  saveProfile(currentProfile);
+  editOverlay.classList.remove('visible');
+  populateHUD(currentProfile);
+
+  // Try to persist to OASIS as a holon
+  if (currentProfile.oasis?.jwt) {
+    await saveToOASIS(currentProfile);
+  }
+});
+
+async function saveToOASIS(p) {
+  try {
+    await fetch(`${SERVER_BASE}/api/onboard/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ avatarId: p.oasis?.avatarId, jwt: p.oasis?.jwt, edits: p._edits }),
+    });
+    console.log('[builder] Profile saved to OASIS');
+  } catch (e) {
+    console.warn('[builder] OASIS save failed:', e.message);
+  }
+}
+
+/* ── Boot ────────────────────────────────────────────────────────────────── */
+populateHUD(profile);
+currentProfile = profile;
+saveProfile(profile);
+</script>
+</body>
+</html>

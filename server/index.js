@@ -19,6 +19,7 @@ try {
 const http = require('http');
 const { assemblePlanningBriefingData } = require('./planning-briefing');
 const { maybeSynthesizeNarration } = require('./briefing-synthesize');
+const { generateWorld, pollWorld, createAvatar, askMarvin } = require('./onboard');
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 /** Marvin / default narrator — deep, flat */
@@ -136,6 +137,70 @@ const server = http.createServer(async (req, res) => {
     const result = await handleSpeak(body.text, narrator);
     res.writeHead(result.status, { 'Content-Type': result.contentType });
     res.end(result.body);
+    return;
+  }
+
+  // ── Onboarding: generate world (Blockade Labs) ──────────────────────────────
+  if (url.pathname === '/api/onboard/world' && method === 'POST') {
+    const body = await parseJsonBody(req);
+    try {
+      const result = await generateWorld(
+        body.location || 'Earth',
+        body.skills || [],
+        body.guide || ''
+      );
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (err) {
+      console.error('[onboard/world]', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── Onboarding: poll world status ──────────────────────────────────────────
+  if (url.pathname.startsWith('/api/onboard/world/') && method === 'GET') {
+    const requestId = url.pathname.split('/api/onboard/world/')[1];
+    try {
+      const result = await pollWorld(requestId);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (err) {
+      console.error('[onboard/world/poll]', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── Onboarding: create avatar ───────────────────────────────────────────────
+  if (url.pathname === '/api/onboard/avatar' && method === 'POST') {
+    const body = await parseJsonBody(req);
+    try {
+      const avatar = await createAvatar(body);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(avatar));
+    } catch (err) {
+      console.error('[onboard/avatar]', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── Onboarding: Marvin AI conversation ─────────────────────────────────────
+  if (url.pathname === '/api/onboard/ask' && method === 'POST') {
+    const body = await parseJsonBody(req);
+    try {
+      const result = await askMarvin(body.messages || [], body.profile || {});
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (err) {
+      console.error('[onboard/ask]', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
     return;
   }
 
