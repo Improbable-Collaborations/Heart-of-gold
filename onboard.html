@@ -719,8 +719,8 @@
         <span class="ac-karma-label">Temp password</span>
         <span class="ac-karma-val" id="ac-oasis-password" style="font-family:var(--mono);letter-spacing:0.04em">—</span>
       </div>
-      <div style="font-size:0.6rem;color:var(--amber);margin-top:0.5rem;opacity:0.7">
-        Verify your email, then log in at <a href="https://oasisweb4.one" target="_blank" style="color:var(--accent);text-decoration:underline">oasisweb4.one</a> with these credentials
+      <div id="ac-oasis-note" style="font-size:0.6rem;color:var(--amber);margin-top:0.5rem;opacity:0.7">
+        Save these credentials — your OASIS avatar ID has been created. A verification email is on its way.
       </div>
     </div>
 
@@ -1474,8 +1474,8 @@
         const statusMap = {
           ok:             '✓ Avatar registered on OASIS',
           verify_email:   '✓ Registered — check your email to verify',
-          username_taken: '⚠ Username taken — try oasisweb4.one/signup',
-          error:          '⚠ Registration error — try oasisweb4.one/signup',
+          username_taken: '⚠ Username already taken — your credentials below are unique, please save them',
+          error:          '⚠ Avatar ID generated locally — OASIS sync pending',
           pending:        '… Registering…',
         };
         document.getElementById('ac-oasis-status').textContent =
