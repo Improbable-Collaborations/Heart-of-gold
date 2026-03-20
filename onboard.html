@@ -999,9 +999,8 @@
     /* ── Ambient Audio Engine (Web Audio API — no files needed) ─────────── */
     const SpaceAudio = (() => {
       let ctx = null;
-      let ambientGain = null;
       let ambientNodes = [];
-      let bleepTimer = null;
+      let driftTimer = null;
       let running = false;
       let started = false;
 
@@ -1010,162 +1009,129 @@
         ctx = new (window.AudioContext || window.webkitAudioContext)();
       }
 
+      function makeNoise(seconds) {
+        const sr = ctx.sampleRate;
+        const buf = ctx.createBuffer(1, sr * seconds, sr);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
+        return src;
+      }
+
       function startAmbient() {
         if (running || !ctx) return;
         running = true;
+        const now = ctx.currentTime;
 
-        // Master fader — fades in slowly
-        ambientGain = ctx.createGain();
-        ambientGain.gain.setValueAtTime(0, ctx.currentTime);
-        ambientGain.gain.linearRampToValueAtTime(0.022, ctx.currentTime + 8);
-        ambientGain.connect(ctx.destination);
+        // ── Master ──────────────────────────────────────────────────────────
+        const master = ctx.createGain();
+        master.gain.setValueAtTime(0, now);
+        master.gain.linearRampToValueAtTime(0.28, now + 10); // slow fade-in
+        master.connect(ctx.destination);
+        ambientNodes.push(master);
 
-        // Low sub drone (two slightly detuned oscillators create a slow beating effect)
-        [[36, 0.55], [40, 0.38], [80, 0.18]].forEach(([freq, vol]) => {
+        // ── Sub drones: two detuned sines create a slow beating pulse ───────
+        // The difference (37 vs 41 Hz = 4 Hz beat) is felt more than heard
+        [[37, 0.50], [41, 0.35], [78, 0.12]].forEach(([freq, vol]) => {
           const osc = ctx.createOscillator();
           osc.type = 'sine';
           osc.frequency.value = freq;
           const g = ctx.createGain();
           g.gain.value = vol;
-          osc.connect(g); g.connect(ambientGain);
+          osc.connect(g); g.connect(master);
           osc.start();
           ambientNodes.push(osc);
         });
 
-        // Filtered noise — distant cosmic static
-        const sr = ctx.sampleRate;
-        const buf = ctx.createBuffer(1, sr * 3, sr);
-        const d = buf.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1);
-        const noise = ctx.createBufferSource();
-        noise.buffer = buf;
-        noise.loop = true;
-        const noiseFilter = ctx.createBiquadFilter();
-        noiseFilter.type = 'lowpass';
-        noiseFilter.frequency.value = 90;
-        noiseFilter.Q.value = 0.5;
-        const noiseGain = ctx.createGain();
-        noiseGain.gain.value = 0.22;
-        noise.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(ambientGain);
-        noise.start();
-        ambientNodes.push(noise);
+        // ── Void noise: very low-pass filtered — the hiss of the cosmos ─────
+        const voidNoise = makeNoise(4);
+        const voidFilter = ctx.createBiquadFilter();
+        voidFilter.type = 'lowpass';
+        voidFilter.frequency.value = 80;
+        voidFilter.Q.value = 0.3;
+        const voidGain = ctx.createGain();
+        voidGain.gain.value = 0.18;
+        voidNoise.connect(voidFilter); voidFilter.connect(voidGain); voidGain.connect(master);
+        voidNoise.start();
+        ambientNodes.push(voidNoise);
 
-        // Very slow LFO for gentle swell — breathes the volume
+        // ── Breathing LFO — very slow swell (one cycle every ~22 seconds) ───
         const lfo = ctx.createOscillator();
         lfo.type = 'sine';
-        lfo.frequency.value = 0.07;
-        const lfoAmt = ctx.createGain();
-        lfoAmt.gain.value = 0.012;
-        lfo.connect(lfoAmt); lfoAmt.connect(ambientGain.gain);
+        lfo.frequency.value = 0.045;
+        const lfoDepth = ctx.createGain();
+        lfoDepth.gain.value = 0.08; // modulates master gain gently
+        lfo.connect(lfoDepth); lfoDepth.connect(master.gain);
         lfo.start();
         ambientNodes.push(lfo);
 
-        scheduleBleep();
+        // ── Stellar drift: a very rare, barely audible filtered noise swell ─
+        scheduleDrift();
       }
 
-      function scheduleBleep() {
-        const delay = 10000 + Math.random() * 14000; // every 10–24s
-        bleepTimer = setTimeout(() => {
-          if (running) { bleep(); scheduleBleep(); }
+      // A slow cloud of filtered mid noise that drifts in, lingers, and fades —
+      // like a distant stellar wind passing the ship. No attack, no decay.
+      function stellarDrift() {
+        if (!ctx || !running) return;
+        const now = ctx.currentTime;
+        const fadeIn  = 6 + Math.random() * 6;   // 6–12 s fade in
+        const hold    = 8 + Math.random() * 10;  // 8–18 s linger
+        const fadeOut = 8 + Math.random() * 8;   // 8–16 s fade out
+        const freq    = 180 + Math.random() * 200; // 180–380 Hz band
+
+        const noise = makeNoise(5);
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = freq;
+        filter.Q.value = 0.6;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(0.018, now + fadeIn);
+        g.gain.setValueAtTime(0.018, now + fadeIn + hold);
+        g.gain.linearRampToValueAtTime(0, now + fadeIn + hold + fadeOut);
+        noise.connect(filter); filter.connect(g); g.connect(ctx.destination);
+        noise.start(now);
+        noise.stop(now + fadeIn + hold + fadeOut + 0.5);
+      }
+
+      function scheduleDrift() {
+        const delay = 25000 + Math.random() * 35000; // every 25–60 s
+        driftTimer = setTimeout(() => {
+          if (running) { stellarDrift(); scheduleDrift(); }
         }, delay);
       }
 
-      // Synthesize a computer bleep: 4 different varieties
-      function bleep(variant) {
-        if (!ctx || !running) return;
-        const v = variant !== undefined ? variant : Math.floor(Math.random() * 5);
-        const now = ctx.currentTime;
-        const out = ctx.createGain();
-        out.connect(ctx.destination);
-
-        if (v === 0) {
-          // Short square blip
-          const o = ctx.createOscillator();
-          o.type = 'square';
-          o.frequency.value = 880 + Math.random() * 440;
-          out.gain.setValueAtTime(0.013, now);
-          out.gain.exponentialRampToValueAtTime(0.0001, now + 0.11);
-          o.connect(out); o.start(now); o.stop(now + 0.11);
-
-        } else if (v === 1) {
-          // Double blip
-          [0, 0.14].forEach(t => {
-            const o = ctx.createOscillator();
-            o.type = 'square';
-            o.frequency.value = 1100 + Math.random() * 300;
-            const g = ctx.createGain();
-            g.gain.setValueAtTime(0, now + t);
-            g.gain.linearRampToValueAtTime(0.011, now + t + 0.006);
-            g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.09);
-            o.connect(g); g.connect(ctx.destination);
-            o.start(now + t); o.stop(now + t + 0.09);
-          });
-
-        } else if (v === 2) {
-          // Descending sweep
-          const o = ctx.createOscillator();
-          o.type = 'sawtooth';
-          o.frequency.setValueAtTime(1600, now);
-          o.frequency.exponentialRampToValueAtTime(350, now + 0.28);
-          out.gain.setValueAtTime(0.010, now);
-          out.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
-          o.connect(out); o.start(now); o.stop(now + 0.28);
-
-        } else if (v === 3) {
-          // Rising chirp
-          const o = ctx.createOscillator();
-          o.type = 'sine';
-          o.frequency.setValueAtTime(500, now);
-          o.frequency.exponentialRampToValueAtTime(2200, now + 0.1);
-          out.gain.setValueAtTime(0.014, now);
-          out.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-          o.connect(out); o.start(now); o.stop(now + 0.18);
-
-        } else {
-          // Triple ascending confirmation tones
-          [0, 0.12, 0.24].forEach((t, i) => {
-            const o = ctx.createOscillator();
-            o.type = 'sine';
-            o.frequency.value = [660, 880, 1100][i];
-            const g = ctx.createGain();
-            g.gain.setValueAtTime(0, now + t);
-            g.gain.linearRampToValueAtTime(0.012, now + t + 0.008);
-            g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.1);
-            o.connect(g); g.connect(ctx.destination);
-            o.start(now + t); o.stop(now + t + 0.1);
-          });
-        }
-      }
-
-      // Brief ping played on each step transition
+      // Soft resonant tone on step transitions — barely a breath
       function stepPing() {
         if (!ctx) return;
         const now = ctx.currentTime;
         const o = ctx.createOscillator();
         const g = ctx.createGain();
         o.type = 'sine';
-        o.frequency.setValueAtTime(520, now);
-        o.frequency.linearRampToValueAtTime(780, now + 0.06);
-        g.gain.setValueAtTime(0.022, now);
-        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+        o.frequency.value = 196; // G3 — deep, not bright
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(0.018, now + 0.08);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 1.8);
         o.connect(g); g.connect(ctx.destination);
-        o.start(now); o.stop(now + 0.22);
+        o.start(now); o.stop(now + 1.8);
       }
 
-      // Triumphant complete chime
+      // Completion: a long, gentle pad swell rather than a fanfare
       function completeFanfare() {
         if (!ctx) return;
         const now = ctx.currentTime;
-        [[0, 523], [0.13, 659], [0.26, 784], [0.42, 1047]].forEach(([t, freq]) => {
+        [130, 196, 261, 392].forEach((freq, i) => {
           const o = ctx.createOscillator();
           const g = ctx.createGain();
           o.type = 'sine';
           o.frequency.value = freq;
-          g.gain.setValueAtTime(0, now + t);
-          g.gain.linearRampToValueAtTime(0.045, now + t + 0.01);
-          g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.55);
+          g.gain.setValueAtTime(0, now + i * 0.3);
+          g.gain.linearRampToValueAtTime(0.032, now + i * 0.3 + 1.2);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.3 + 4.5);
           o.connect(g); g.connect(ctx.destination);
-          o.start(now + t); o.stop(now + t + 0.55);
+          o.start(now + i * 0.3); o.stop(now + i * 0.3 + 4.5);
         });
       }
 
@@ -1178,13 +1144,13 @@
       }
 
       function stop() {
-        if (bleepTimer) clearTimeout(bleepTimer);
+        if (driftTimer) clearTimeout(driftTimer);
         running = false;
         ambientNodes.forEach(n => { try { n.stop?.(); } catch (_) {} });
         ambientNodes = [];
       }
 
-      return { ensureStarted, bleep, stepPing, completeFanfare, stop };
+      return { ensureStarted, stepPing, completeFanfare, stop };
     })();
 
     // Boot audio on first user gesture (browser requirement)
