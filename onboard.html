@@ -501,7 +501,27 @@
     }
     #skybox-img.loaded { opacity: 0.55; }
 
-    /* ── Reset button ──────────────────────────────────────────────────── */
+    /* ── Reset + Demo buttons ──────────────────────────────────────────── */
+    #demo-btn {
+      position: fixed;
+      top: 0.35rem; right: 6.5rem;
+      z-index: 30;
+      background: rgba(196,144,106,0.12);
+      border: 1px solid var(--amber);
+      color: var(--amber2);
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      padding: 0.3rem 0.65rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 0.3em;
+      transition: all 0.15s;
+    }
+    #demo-btn:hover {
+      background: rgba(196,144,106,0.22);
+      color: var(--amber2);
+    }
     #reset-btn {
       position: fixed;
       top: 0.35rem; right: 0.75rem;
@@ -592,6 +612,9 @@
   <canvas id="bg-canvas"></canvas>
   <img id="skybox-img" alt="" aria-hidden="true">
   <div id="done-glow"></div>
+
+  <!-- Demo shortcut -->
+  <a id="demo-btn" href="#" title="Skip to dashboard with demo profile">⬡ Demo →</a>
 
   <!-- Reset button -->
   <button id="reset-btn" type="button" title="Restart onboarding">↺ Reset</button>
@@ -1679,6 +1702,57 @@
     document.getElementById('reset-btn').addEventListener('click', () => {
       window.location.reload();
     });
+
+    /* ── Demo shortcut ───────────────────────────────────────────────────── */
+    (() => {
+      const DEMO_PROFILE = {
+        id: 'demo-zaphod-beeblebrox-42',
+        name: 'Zaphod Beeblebrox',
+        location: 'Betelgeuse V',
+        lat: 5.35, lng: -4.0,
+        guide: 'ai_safety',
+        skills: ['coding', 'ai', 'community'],
+        github: 'zaphodb',
+        email: 'zaphod@heartofgold.space',
+        worldUrl: null,
+        pinType: 'builder',
+        initials: 'ZB',
+        color: '#64b5f6',
+        oasis: {
+          status: 'verify_email',
+          username: 'zaphod-builder',
+          password: 'Builder-42XYZ!',
+          avatarId: '00000000-0042-0042-0042-000000000042',
+        },
+        monitorPin: {
+          id: 'demo-zaphod-beeblebrox-42',
+          pinType: 'builder',
+          name: 'Zaphod Beeblebrox',
+          lat: 5.35, lng: -4.0,
+          city: 'Betelgeuse V', country: '',
+          status: 'active',
+          summary: 'Ex-President of the Galaxy. Currently writing the Hitchhiker\'s Guide to AI Safety. Known to have two heads and a very relaxed attitude to improbability.',
+          person: { name: 'Zaphod Beeblebrox', initials: 'ZB', org: 'Pan Galactic Builders' },
+          guideOutput: 'Hitchhiker\'s Guide to AI Safety',
+          guideStatus: 'active',
+          hoursLogged: 142,
+          github: { username: 'zaphodb', recentCommits: 37, streak: 12, linesAdded: 8420 },
+          token: { status: 'live', ticker: '$SAFE', launchpad: 'OpenSERV', desc: 'Guide governance + tip token' },
+          buildersGrant: { status: 'approved' },
+          skills: ['coding', 'ai', 'community'],
+          _joinedAt: '2026-01-15T09:00:00.000Z',
+        },
+        _joinedAt: '2026-01-15T09:00:00.000Z',
+      };
+
+      const btn = document.getElementById('demo-btn');
+      try {
+        const enc = btoa(unescape(encodeURIComponent(JSON.stringify(DEMO_PROFILE))));
+        btn.href = `builder.html?p=${enc}`;
+      } catch (_) {
+        btn.href = 'builder.html';
+      }
+    })();
 
     /* ── Boot ────────────────────────────────────────────────────────────── */
     buildProgress();
