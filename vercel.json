@@ -1,6 +1,8 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/server" }
+    { "source": "/api/(.*)", "destination": "/api/server" },
+    { "source": "/builder", "destination": "/builder.html" },
+    { "source": "/onboard", "destination": "/index.html" }
   ],
   "functions": {
     "api/server.js": {

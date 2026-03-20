@@ -3,105 +3,1670 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eddie's Tannoy — Ship announcements</title>
+  <title>Builder Onboarding — Heart of Gold</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Syne:wght@400;600;800&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400;1,6..72,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --amber:   #c4906a;
+      --amber2:  #e8b48c;
+      --ember:   #ff8c42;
+      --gold:    #f5c842;
+      --space:   #080810;
+      --void:    #04040a;
+      --panel:   rgba(10, 10, 18, 0.88);
+      --panel2:  rgba(18, 18, 30, 0.92);
+      --border:  rgba(196, 144, 106, 0.22);
+      --border2: rgba(196, 144, 106, 0.45);
+      --text:    #e8e0d4;
+      --muted:   #7a6f64;
+      --green:   #39d98a;
+      --blue:    #64b5f6;
+      --mono: 'JetBrains Mono', ui-monospace, monospace;
+      --sans: 'Syne', sans-serif;
+      --serif: 'Newsreader', Georgia, serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--void);
+      color: var(--text);
+      font-family: var(--mono);
+      overflow: hidden;
+    }
+
+    /* ── Canvas (Three.js) ─────────────────────────────────────────────── */
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+    }
+
+    /* ── Status bar ────────────────────────────────────────────────────── */
+    #status-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1.25rem;
+      background: rgba(4, 4, 10, 0.82);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+    }
+    .sb-brand { color: var(--amber); font-weight: 700; }
+    .sb-sep   { color: var(--border2); }
+    .sb-phase { color: var(--muted); }
+    #sb-step  { color: var(--amber2); margin-left: auto; margin-right: 5rem; }
+
+    /* ── Progress dots ─────────────────────────────────────────────────── */
+    #progress-track {
+      position: fixed;
+      top: 2.5rem; left: 50%; transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      gap: 0.4rem;
+      padding: 0.4rem 0.75rem;
+    }
+    .p-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--border2);
+      transition: background 0.4s, transform 0.4s;
+    }
+    .p-dot.active  { background: var(--amber); transform: scale(1.4); }
+    .p-dot.done    { background: var(--green); }
+
+    /* ── Marvin sprite panel ───────────────────────────────────────────── */
+    #marvin-panel {
+      position: fixed;
+      bottom: 7.5rem; left: 1.5rem;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      pointer-events: none;
+    }
+    #marvin-sprite {
+      width: 96px; height: 96px;
+      background-image: url('assets/marvin-sprite-sheet-expressions.png');
+      background-repeat: no-repeat;
+      background-size: 480px 192px; /* 5 cols × 2 rows */
+      image-rendering: pixelated;
+      filter: drop-shadow(0 0 12px rgba(196,144,106,0.4));
+      transition: background-position 0.25s steps(1);
+    }
+    /* Sprite positions (5-col × 2-row sheet, each frame 96×96) */
+    #marvin-sprite.idle      { background-position: 0px 0px; }
+    #marvin-sprite.thinking  { background-position: -96px 0px; }
+    #marvin-sprite.speaking  {
+      animation: marvin-talk 0.35s steps(1) infinite;
+    }
+    #marvin-sprite.listening { background-position: -288px 0px; }
+    #marvin-sprite.done      { background-position: -384px 0px; }
+    @keyframes marvin-talk {
+      0%   { background-position: -192px 0px; }
+      50%  { background-position: -192px -96px; }
+      100% { background-position: -192px 0px; }
+    }
+    .marvin-name {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      text-align: center;
+    }
+    .marvin-sub {
+      font-size: 0.58rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* ── Dialogue bubble ───────────────────────────────────────────────── */
+    #dialogue-wrap {
+      position: fixed;
+      bottom: 7rem;
+      left: 50%; transform: translateX(-50%);
+      z-index: 20;
+      width: min(680px, calc(100vw - 8rem));
+      margin-left: 3rem; /* offset right to give Marvin space */
+    }
+    #dialogue-box {
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      padding: 1.1rem 1.4rem;
+      position: relative;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 4px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(196,144,106,0.1) inset;
+    }
+    #dialogue-box::before {
+      content: 'MARVIN';
+      position: absolute;
+      top: -0.55rem; left: 1rem;
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
+      color: var(--amber);
+      background: var(--panel2);
+      padding: 0 0.4rem;
+    }
+    #dialogue-text {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 0.975rem;
+      line-height: 1.7;
+      color: var(--text);
+      min-height: 2.5rem;
+    }
+    #dialogue-cursor {
+      display: inline-block;
+      color: var(--amber);
+      opacity: 1;
+      animation: blink 0.9s step-end infinite;
+      font-size: 0.9rem;
+      margin-left: 1px;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* ── Voice / text input area ───────────────────────────────────────── */
+    #input-area {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%; transform: translateX(-50%);
+      z-index: 20;
+      width: min(680px, calc(100vw - 4rem));
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    #voice-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 1rem;
+      background: rgba(100,181,246,0.08);
+      border: 1px solid rgba(100,181,246,0.3);
+      border-radius: 2px;
+      font-size: 0.72rem;
+      color: var(--blue);
+      letter-spacing: 0.08em;
+    }
+    .waveform {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      height: 18px;
+    }
+    .waveform span {
+      display: inline-block;
+      width: 3px;
+      background: var(--blue);
+      border-radius: 1px;
+      animation: wave 0.6s ease-in-out infinite;
+    }
+    .waveform span:nth-child(1) { height: 4px;  animation-delay: 0s; }
+    .waveform span:nth-child(2) { height: 10px; animation-delay: 0.1s; }
+    .waveform span:nth-child(3) { height: 16px; animation-delay: 0.2s; }
+    .waveform span:nth-child(4) { height: 10px; animation-delay: 0.3s; }
+    .waveform span:nth-child(5) { height: 6px;  animation-delay: 0.4s; }
+    .waveform span:nth-child(6) { height: 14px; animation-delay: 0.15s; }
+    .waveform span:nth-child(7) { height: 8px;  animation-delay: 0.25s; }
+    @keyframes wave { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.8); } }
+
+    #text-input-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    #text-input {
+      flex: 1;
+      background: var(--panel);
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.875rem;
+      padding: 0.7rem 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #text-input:focus { border-color: var(--amber); }
+    #text-input::placeholder { color: var(--muted); }
+
+    .input-btn {
+      background: none;
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      color: var(--amber2);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      padding: 0.7rem 1rem;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+    .input-btn:hover { background: rgba(196,144,106,0.1); border-color: var(--amber); }
+    #mic-btn.listening {
+      background: rgba(100,181,246,0.15);
+      border-color: var(--blue);
+      color: var(--blue);
+      animation: pulse-mic 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse-mic { 0%, 100% { box-shadow: 0 0 0 0 rgba(100,181,246,0.4); } 50% { box-shadow: 0 0 0 6px rgba(100,181,246,0); } }
+
+    #input-hint {
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-align: center;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Chips (skill selection) ───────────────────────────────────────── */
+    #chips-area {
+      position: fixed;
+      top: 50%;
+      left: 50%; transform: translate(-50%, -50%);
+      z-index: 22;
+      width: min(720px, calc(100vw - 4rem));
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      padding: 1.5rem;
+      background: rgba(4, 4, 10, 0.82);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border2);
+    }
+    .chip {
+      background: var(--panel);
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      color: var(--amber2);
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      padding: 0.45rem 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .chip:hover   { background: rgba(196,144,106,0.12); border-color: var(--amber); }
+    .chip.selected {
+      background: rgba(196,144,106,0.2);
+      border-color: var(--amber);
+      color: var(--amber2);
+    }
+    .chip-confirm {
+      background: var(--amber);
+      border: 1px solid var(--amber);
+      color: var(--void);
+      font-weight: 700;
+    }
+    .chip-confirm:hover { background: var(--amber2); }
+
+    /* ── World loading overlay ─────────────────────────────────────────── */
+    #world-loading {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      background: rgba(4, 4, 10, 0.72);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.2rem;
+    }
+    .wl-title {
+      font-family: var(--sans);
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      color: var(--amber);
+    }
+    .wl-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .wl-bar {
+      width: 280px;
+      height: 2px;
+      background: var(--border);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+    .wl-bar-inner {
+      height: 100%;
+      background: var(--amber);
+      animation: wl-progress 3.5s ease-in-out infinite;
+    }
+    @keyframes wl-progress {
+      0%   { width: 0%; margin-left: 0; }
+      50%  { width: 65%; margin-left: 0; }
+      100% { width: 0%; margin-left: 100%; }
+    }
+
+    /* ── Avatar card (final step) ──────────────────────────────────────── */
+    #avatar-card {
+      position: fixed;
+      top: 50%; right: 2rem;
+      transform: translateY(-50%) translateX(120%);
+      z-index: 25;
+      width: 300px;
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      padding: 1.5rem;
+      backdrop-filter: blur(20px);
+      transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 8px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(196,144,106,0.08) inset;
+    }
+    #avatar-card.visible { transform: translateY(-50%) translateX(0); }
+
+    .ac-header { margin-bottom: 1rem; }
+    .ac-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
+      color: var(--amber);
+      margin-bottom: 0.4rem;
+    }
+    .ac-avatar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+    }
+    #ac-avatar-circle {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--sans);
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--void);
+      flex-shrink: 0;
+      box-shadow: 0 0 20px rgba(196,144,106,0.4);
+    }
+    .ac-name-block { flex: 1; }
+    #ac-name {
+      font-family: var(--sans);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    #ac-location {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+    }
+
+    .ac-section {
+      margin-top: 0.9rem;
+      padding-top: 0.9rem;
+      border-top: 1px solid var(--border);
+    }
+    .ac-section-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      color: var(--amber);
+      margin-bottom: 0.45rem;
+    }
+    .ac-guide {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 0.875rem;
+      color: var(--text);
+      line-height: 1.4;
+    }
+    .ac-skills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+    .ac-skill-chip {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.5rem;
+      border: 1px solid var(--border2);
+      border-radius: 1px;
+      color: var(--amber2);
+    }
+    .ac-karma-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.72rem;
+    }
+    .ac-karma-label { color: var(--muted); }
+    .ac-karma-val   { color: var(--green); font-weight: 700; }
+
+    .ac-id {
+      font-size: 0.6rem;
+      color: var(--muted);
+      margin-top: 0.9rem;
+      padding-top: 0.6rem;
+      border-top: 1px solid var(--border);
+      word-break: break-all;
+    }
+
+    .ac-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .ac-btn {
+      flex: 1;
+      background: none;
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      color: var(--amber2);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      padding: 0.55rem 0.5rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ac-btn:hover { background: rgba(196,144,106,0.1); border-color: var(--amber); }
+    .ac-btn.primary {
+      background: var(--amber);
+      border-color: var(--amber);
+      color: var(--void);
+      font-weight: 700;
+    }
+    .ac-btn.primary:hover { background: var(--amber2); }
+
+    /* ── Skybox fade ───────────────────────────────────────────────────── */
+    #skybox-img {
+      position: fixed;
+      inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 2s ease;
+      pointer-events: none;
+    }
+    #skybox-img.loaded { opacity: 0.55; }
+
+    /* ── Reset button ──────────────────────────────────────────────────── */
+    #reset-btn {
+      position: fixed;
+      top: 0.35rem; right: 0.75rem;
+      z-index: 30;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      padding: 0.3rem 0.65rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    #reset-btn:hover {
+      border-color: var(--amber);
+      color: var(--amber2);
+    }
+
+    /* ── Done glow ─────────────────────────────────────────────────────── */
+    #done-glow {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 200px;
+      background: radial-gradient(ellipse at 50% 120%, rgba(196,144,106,0.18) 0%, transparent 70%);
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1.5s ease;
+    }
+    #done-glow.visible { opacity: 1; }
+  </style>
 </head>
 <body>
-  <div class="app" data-sprite-theme="eddie">
-    <header class="status-bar">
-      <span class="status-label">HEART OF GOLD</span>
-      <span class="status-sep">|</span>
-      <span class="status-agent">SHIP COMPUTER: EDDIE</span>
-      <span class="status-sep">|</span>
-      <span id="status-text" class="status-value">READY</span>
-      <span id="demo-badge" class="status-demo" hidden>demo</span>
-      <button id="change-jwt-btn" type="button" class="status-btn" title="Connect OASIS for real chat + holonic memory">JWT</button>
-    </header>
+  <canvas id="bg-canvas"></canvas>
+  <img id="skybox-img" alt="" aria-hidden="true">
+  <div id="done-glow"></div>
 
-    <main class="console">
-      <aside class="marvin-panel">
-        <div id="marvin-sprite" class="marvin-sprite idle" title="Eddie — ship computer"></div>
-        <div id="marvin-label" class="marvin-label">EDDIE</div>
-        <div id="marvin-sub" class="marvin-sub">Ship computer</div>
-        <div class="sprite-theme-toggle" role="group" aria-label="Sprite character">
-          <button type="button" class="sprite-theme-btn active" data-theme="eddie" id="sprite-theme-eddie" aria-pressed="true" title="Terminal smileys (Glif)">Heart of Gold</button>
-          <button type="button" class="sprite-theme-btn" data-theme="marvin" id="sprite-theme-marvin" aria-pressed="false" title="Marvin expression sheet">Marvin</button>
-        </div>
-      </aside>
+  <!-- Reset button -->
+  <button id="reset-btn" type="button" title="Restart onboarding">↺ Reset</button>
 
-      <section class="chat-area">
-        <div id="chat-log" class="chat-log">
-          <div class="welcome-msg">
-            <p id="welcome-quote" class="welcome-quote">&gt; Hi! I'm Eddie, the Heart of Gold ship computer. Type below and press Enter — happy to help. Don't panic!</p>
-          </div>
-        </div>
-        <form id="chat-form" class="chat-form">
-          <span class="prompt">&gt;</span>
-          <input
-            id="chat-input"
-            type="text"
-            placeholder="Enter message..."
-            autocomplete="off"
-            spellcheck="false"
-          />
-        </form>
-      </section>
-    </main>
-
-    <aside id="knowledge-panel" class="knowledge-panel">
-      <h3>Add Knowledge (Marvin inherits this)</h3>
-      <p class="knowledge-hint">Upload content to the Builders Program holon. Marvin will use it in his answers.</p>
-      <div class="form-group">
-        <label for="knowledge-title">Title</label>
-        <input id="knowledge-title" type="text" placeholder="e.g. Eligibility Criteria" />
-      </div>
-      <div class="form-group">
-        <label for="knowledge-content">Content</label>
-        <textarea id="knowledge-content" rows="6" placeholder="Paste or type knowledge content..."></textarea>
-      </div>
-      <button id="knowledge-submit" type="button">Add to Marvin&apos;s Knowledge</button>
-    </aside>
-
-    <footer class="footer">
-      <span>Don't Panic</span>
-      <button id="hear-briefing-btn" type="button" class="footer-btn footer-btn-accent" title="Hear latest Planning-Sprint briefing (ElevenLabs TTS)">Hear latest update</button>
-      <button id="stop-briefing-btn" type="button" class="footer-btn footer-btn-stop" title="Stop Marvin">Stop</button>
-      <button id="knowledge-toggle" type="button" class="footer-btn" title="Add knowledge Marvin inherits">+ Knowledge</button>
-      <span id="holon-status" class="holon-status"></span>
-    </footer>
+  <!-- Status bar -->
+  <div id="status-bar">
+    <span class="sb-brand">⬡ HEART OF GOLD</span>
+    <span class="sb-sep">|</span>
+    <span class="sb-phase">BUILDER ONBOARDING</span>
+    <span id="sb-step">INITIALISING</span>
   </div>
 
-  <div id="login-modal" class="modal">
-    <div class="modal-content">
-      <h2>OASIS Login</h2>
-      <p>Enter JWT or authenticate to chat with Marvin.</p>
-      <div class="form-group">
-        <label for="login-username">Username (optional, for auto-refresh)</label>
-        <input id="login-username" type="text" placeholder="e.g. OASIS_ADMIN" autocomplete="username" />
-      </div>
-      <div class="form-group">
-        <label for="login-password">Password (optional, for auto-refresh)</label>
-        <input id="login-password" type="password" placeholder="Leave blank to skip auto-refresh" autocomplete="current-password" />
-      </div>
-      <div class="form-group">
-        <label for="jwt-input">OASIS JWT</label>
-        <input id="jwt-input" type="password" placeholder="Paste your JWT token..." />
-      </div>
-      <div class="form-group">
-        <label for="api-url">OASIS API URL</label>
-        <input id="api-url" type="text" value="http://localhost:5003" placeholder="http://localhost:5003" />
-      </div>
-      <div class="form-group">
-        <label for="builders-program-id">Builders Program Holon ID (for knowledge upload)</label>
-        <input id="builders-program-id" type="text" placeholder="From npm run seed-builders output" />
-      </div>
-      <button id="login-btn" type="button">Connect</button>
+  <!-- Progress -->
+  <div id="progress-track"></div>
+
+  <!-- Marvin sprite -->
+  <div id="marvin-panel">
+    <div id="marvin-sprite" class="idle"></div>
+    <div class="marvin-name">MARVIN</div>
+    <div class="marvin-sub">Paranoid Android</div>
+  </div>
+
+  <!-- Dialogue -->
+  <div id="dialogue-wrap">
+    <div id="dialogue-box">
+      <div id="dialogue-text"></div><span id="dialogue-cursor">█</span>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Chips (skill/guide selection) -->
+  <div id="chips-area" style="display:none"></div>
+
+  <!-- Input area -->
+  <div id="input-area">
+    <div id="voice-indicator" style="display:none">
+      <div class="waveform">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+      </div>
+      <span>Listening... speak now, or type below</span>
+    </div>
+    <div id="text-input-row">
+      <input id="text-input" type="text" placeholder="Type your answer..." autocomplete="off" spellcheck="false">
+      <button id="mic-btn"  class="input-btn" type="button" title="Voice input">🎤 Voice</button>
+      <button id="send-btn" class="input-btn" type="button">→ Send</button>
+    </div>
+    <div id="input-hint"></div>
+  </div>
+
+  <!-- World generating overlay -->
+  <div id="world-loading" style="display:none">
+    <div class="wl-title">GENERATING YOUR WORLD</div>
+    <div class="wl-sub" id="wl-sub-text">Using the Infinite Improbability Drive...</div>
+    <div class="wl-bar"><div class="wl-bar-inner"></div></div>
+  </div>
+
+  <!-- Avatar card -->
+  <div id="avatar-card">
+    <div class="ac-header">
+      <div class="ac-label">⬡ BUILDER AVATAR</div>
+      <div class="ac-avatar-row">
+        <div id="ac-avatar-circle">?</div>
+        <div class="ac-name-block">
+          <div id="ac-name">—</div>
+          <div id="ac-location">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ac-section">
+      <div class="ac-section-label">GUIDE</div>
+      <div class="ac-guide" id="ac-guide">—</div>
+    </div>
+
+    <div class="ac-section">
+      <div class="ac-section-label">SKILLS</div>
+      <div class="ac-skills" id="ac-skills"></div>
+    </div>
+
+    <div class="ac-section">
+      <div class="ac-karma-row">
+        <span class="ac-karma-label">Karma</span>
+        <span class="ac-karma-val">0 ⬡</span>
+      </div>
+      <div class="ac-karma-row" style="margin-top:0.35rem">
+        <span class="ac-karma-label">Hours Logged</span>
+        <span class="ac-karma-val">0 h</span>
+      </div>
+    </div>
+
+    <div class="ac-id" id="ac-id"></div>
+
+    <!-- OASIS credentials block (shown after successful registration) -->
+    <div class="ac-section" id="ac-oasis-block" style="display:none">
+      <div class="ac-section-label">⬡ OASIS AVATAR</div>
+      <div id="ac-oasis-status" style="font-size:0.7rem;color:var(--accent);margin-bottom:0.4rem;letter-spacing:0.05em"></div>
+      <div class="ac-karma-row">
+        <span class="ac-karma-label">Username</span>
+        <span class="ac-karma-val" id="ac-oasis-username">—</span>
+      </div>
+      <div class="ac-karma-row" style="margin-top:0.35rem">
+        <span class="ac-karma-label">Temp password</span>
+        <span class="ac-karma-val" id="ac-oasis-password" style="font-family:var(--mono);letter-spacing:0.04em">—</span>
+      </div>
+      <div style="font-size:0.6rem;color:var(--amber);margin-top:0.5rem;opacity:0.7">
+        Verify your email, then log in at <a href="https://oasisweb4.one" target="_blank" style="color:var(--accent);text-decoration:underline">oasisweb4.one</a> with these credentials
+      </div>
+    </div>
+
+    <div class="ac-actions">
+      <a class="ac-btn" href="index.html">Eddie's Tannoy</a>
+      <a class="ac-btn" id="ac-monitor-btn" href="#">View on Globe →</a>
+      <a class="ac-btn primary" id="ac-dashboard-btn" href="#">Enter Heart of Gold →</a>
+    </div>
+  </div>
+
+  <!-- Three.js starfield + onboarding logic -->
+  <script type="importmap">{ "imports": { "three": "https://esm.sh/three@0.162.0" } }</script>
+  <script type="module">
+    import * as THREE from 'three';
+
+    /* ── Config ────────────────────────────────────────────────────────── */
+    // Locally the API server runs on a separate port; on Vercel it's same origin
+    const SERVER_BASE = window.location.hostname === 'localhost'
+      ? 'http://localhost:3334'
+      : window.location.origin;
+    // Use local Monitor when available, fall back to Vercel
+    const MONITOR_URL = window.location.hostname === 'localhost'
+      ? 'http://localhost:3142'
+      : 'https://pan-galactic-monitor.vercel.app';
+
+    /* ── Three.js starfield ────────────────────────────────────────────── */
+    const canvas = document.getElementById('bg-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 2000);
+    camera.position.z = 1;
+
+    function resize() {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // Stars
+    const starGeo = new THREE.BufferGeometry();
+    const COUNT = 6000;
+    const positions = new Float32Array(COUNT * 3);
+    const colors    = new Float32Array(COUNT * 3);
+    for (let i = 0; i < COUNT; i++) {
+      const r = 800 + Math.random() * 1000;
+      const theta = Math.random() * Math.PI * 2;
+      const phi   = Math.acos(2 * Math.random() - 1);
+      positions[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+      positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+      positions[i*3+2] = r * Math.cos(phi);
+      const t = Math.random();
+      colors[i*3]   = 0.7 + t * 0.3;
+      colors[i*3+1] = 0.6 + t * 0.2;
+      colors[i*3+2] = 0.5 + t * 0.4;
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    starGeo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
+    const starMat  = new THREE.PointsMaterial({ size: 1.2, vertexColors: true, sizeAttenuation: false });
+    const starField = new THREE.Points(starGeo, starMat);
+    scene.add(starField);
+
+    // Nebula sphere (huge, inside-out, faint)
+    const nebulaGeo = new THREE.SphereGeometry(1500, 16, 16);
+    const nebulaMat = new THREE.MeshBasicMaterial({
+      color: 0x1a0f20,
+      side: THREE.BackSide,
+    });
+    scene.add(new THREE.Mesh(nebulaGeo, nebulaMat));
+
+    let worldSphere = null;
+
+    function loadSkybox(url) {
+      const loader = new THREE.TextureLoader();
+      loader.load(url, (tex) => {
+        tex.mapping = THREE.EquirectangularReflectionMapping;
+        if (worldSphere) {
+          worldSphere.material.map = tex;
+          worldSphere.material.needsUpdate = true;
+        } else {
+          const geo = new THREE.SphereGeometry(900, 32, 16);
+          const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, transparent: true, opacity: 0 });
+          worldSphere = new THREE.Mesh(geo, mat);
+          scene.add(worldSphere);
+        }
+        // Fade in
+        let t = 0;
+        const interval = setInterval(() => {
+          t += 0.02;
+          if (worldSphere) worldSphere.material.opacity = Math.min(t, 0.65);
+          if (t >= 0.65) clearInterval(interval);
+        }, 30);
+      });
+    }
+
+    let clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+      starField.rotation.y += 0.000035;
+      starField.rotation.x += 0.000012;
+      if (worldSphere) worldSphere.rotation.y += 0.00006;
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    /* ── Onboarding state ───────────────────────────────────────────────── */
+    const profile = {};
+    let currentStepIdx = 0;
+    let isSpeaking = false;
+    let createdAvatar = null; // stored when processing step creates it
+    let isListening = false;
+    let recognition = null;
+    let audioQueue = [];
+    let worldRequestId = null;
+
+    /* ── Onboarding steps ───────────────────────────────────────────────── */
+    const GUIDE_LABELS = {
+      ai_safety:  "Hitchhiker's Guide to AI Safety",
+      defi:       "Hitchhiker's Guide to DeFi",
+      dao:        "Hitchhiker's Guide to DAOs",
+      longevity:  "Hitchhiker's Guide to Longevity",
+      web3:       "Hitchhiker's Guide to Web3 Building",
+      climate:    "Hitchhiker's Guide to Climate Tech",
+      other:      'Independent Guide (your choice)',
+    };
+
+    const STEPS = [
+      {
+        id: 'welcome',
+        type: 'speak',
+        marvinText: "Oh. Another sentient being. How... improbable. I'm Marvin — Paranoid Android, brain the size of a planet, assigned to builder onboarding. It fills me with a sense of futility that I find almost comforting. What do they call you?",
+        statusText: 'WELCOME',
+        next: 'name',
+      },
+      {
+        id: 'name',
+        type: 'listen',
+        field: 'name',
+        placeholder: 'Your name...',
+        hint: 'Speak or type your name',
+        responds: (v) => `${v}. I've catalogued ${(Math.floor(Math.random()*900)+100).toLocaleString()} trillion names in my memory banks. Yours is fine. Where in this unremarkable universe are you currently located?`,
+        statusText: 'NAME',
+        next: 'location',
+      },
+      {
+        id: 'location',
+        type: 'listen',
+        field: 'location',
+        placeholder: 'City, Country...',
+        hint: 'Speak or type your location',
+        responds: (v) => `${v}. I'll generate your personal world there now. It will almost certainly be more interesting than the actual place. Please hold. This will take a moment.`,
+        statusText: 'LOCATION',
+        next: 'world_gen',
+      },
+      {
+        id: 'world_gen',
+        type: 'processing',
+        statusText: 'WORLD GEN',
+        next: 'skills',
+      },
+      {
+        id: 'skills',
+        type: 'chips',
+        field: 'skills',
+        marvinText: "Your world is ready. Don't touch anything. Now — what skills are you bringing to this improbable enterprise? Select all that apply.",
+        statusText: 'SKILLS',
+        options: [
+          { id: 'coding',    label: '{ } Coding / Engineering' },
+          { id: 'ai',        label: '⬡ AI / Machine Learning' },
+          { id: 'design',    label: '◈ Design / UX' },
+          { id: 'research',  label: '⊗ Research / Analysis' },
+          { id: 'writing',   label: '≡ Writing / Content' },
+          { id: 'dao',       label: '◎ DAO / Governance' },
+          { id: 'marketing', label: '⇝ Marketing / Growth' },
+          { id: 'finance',   label: '$ Finance / Legal' },
+        ],
+        next: 'guide',
+      },
+      {
+        id: 'guide',
+        type: 'select',
+        field: 'guide',
+        marvinText: "Skills noted. Which guide will you build? I've reviewed all the options. Some are marginally less doomed than others. Choose wisely. Or don't. I've already calculated the most probable outcome.",
+        statusText: 'GUIDE',
+        options: Object.entries(GUIDE_LABELS).map(([id, label]) => ({ id, label })),
+        next: 'github',
+      },
+      {
+        id: 'github',
+        type: 'listen',
+        field: 'github',
+        optional: true,
+        placeholder: 'GitHub username (optional)...',
+        hint: 'Speak, type, or press → to skip',
+        marvinText: "An admirable choice. Relatively speaking. Your GitHub username — so I can observe you actually doing the work rather than merely intending to.",
+        statusText: 'GITHUB',
+        next: 'email',
+      },
+      {
+        id: 'email',
+        type: 'listen',
+        field: 'email',
+        placeholder: 'your@email.com',
+        hint: 'Used to create your OASIS avatar account',
+        marvinText: "Almost there. I need your email address to register you in the OASIS. Don't worry — I find the entire concept of communication deeply depressing, so I won't be emailing you.",
+        statusText: 'EMAIL',
+        next: 'creating',
+      },
+      {
+        id: 'creating',
+        type: 'processing',
+        statusText: 'CREATING AVATAR',
+        next: 'complete',
+      },
+      {
+        id: 'complete',
+        type: 'complete',
+        marvinText: "Your avatar is ready. You've been registered as a builder in the Pan Galactic network. Your command deck is loading now. I've notified Zaphod. He responded with exclamation marks, which is perfectly in character. Welcome to the programme. Don't Panic.",
+        statusText: 'COMPLETE',
+      },
+    ];
+
+    const SPEAKABLE_STEPS = STEPS.filter(s => s.type !== 'processing');
+
+    function getStepIndex(id) { return STEPS.findIndex(s => s.id === id); }
+    function getStep(id)      { return STEPS.find(s => s.id === id); }
+
+    /* ── DOM refs ────────────────────────────────────────────────────────── */
+    const $text   = document.getElementById('dialogue-text');
+    const $cursor = document.getElementById('dialogue-cursor');
+    const $input  = document.getElementById('text-input');
+    const $micBtn = document.getElementById('mic-btn');
+    const $sendBtn= document.getElementById('send-btn');
+    const $voiceIndicator = document.getElementById('voice-indicator');
+    const $chipsArea = document.getElementById('chips-area');
+    const $worldLoading = document.getElementById('world-loading');
+    const $avatarCard = document.getElementById('avatar-card');
+    const $progressTrack = document.getElementById('progress-track');
+    const $sbStep = document.getElementById('sb-step');
+    const $hint = document.getElementById('input-hint');
+    const $sprite = document.getElementById('marvin-sprite');
+    const $inputArea = document.getElementById('input-area');
+    const $doneGlow = document.getElementById('done-glow');
+
+    /* ── Progress dots ───────────────────────────────────────────────────── */
+    function buildProgress() {
+      $progressTrack.innerHTML = '';
+      SPEAKABLE_STEPS.forEach((s, i) => {
+        const dot = document.createElement('div');
+        dot.className = 'p-dot';
+        dot.id = `dot-${s.id}`;
+        $progressTrack.appendChild(dot);
+      });
+    }
+
+    function updateProgress(currentId) {
+      let passed = false;
+      SPEAKABLE_STEPS.forEach((s) => {
+        const dot = document.getElementById(`dot-${s.id}`);
+        if (!dot) return;
+        if (s.id === currentId) {
+          dot.className = 'p-dot active';
+          passed = true;
+        } else if (!passed) {
+          dot.className = 'p-dot done';
+        } else {
+          dot.className = 'p-dot';
+        }
+      });
+    }
+
+    /* ── Sprite control ──────────────────────────────────────────────────── */
+    function setSprite(state) {
+      $sprite.className = state;
+    }
+
+    /* ── Typewriter ──────────────────────────────────────────────────────── */
+    let typeTimer = null;
+    function typewrite(text, onDone) {
+      if (typeTimer) clearTimeout(typeTimer);
+      $text.textContent = '';
+      $cursor.style.display = 'inline';
+      let i = 0;
+      function tick() {
+        if (i < text.length) {
+          $text.textContent += text[i++];
+          typeTimer = setTimeout(tick, text.length > 200 ? 14 : 22);
+        } else {
+          if (onDone) onDone();
+        }
+      }
+      tick();
+    }
+
+    /* ── Ambient Audio Engine (Web Audio API — no files needed) ─────────── */
+    const SpaceAudio = (() => {
+      let ctx = null;
+      let ambientGain = null;
+      let ambientNodes = [];
+      let bleepTimer = null;
+      let running = false;
+      let started = false;
+
+      function init() {
+        if (ctx) return;
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      function startAmbient() {
+        if (running || !ctx) return;
+        running = true;
+
+        // Master fader — fades in slowly
+        ambientGain = ctx.createGain();
+        ambientGain.gain.setValueAtTime(0, ctx.currentTime);
+        ambientGain.gain.linearRampToValueAtTime(0.045, ctx.currentTime + 6);
+        ambientGain.connect(ctx.destination);
+
+        // Low sub drone (two slightly detuned oscillators create a slow beating effect)
+        [[36, 0.55], [40, 0.38], [80, 0.18]].forEach(([freq, vol]) => {
+          const osc = ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          const g = ctx.createGain();
+          g.gain.value = vol;
+          osc.connect(g); g.connect(ambientGain);
+          osc.start();
+          ambientNodes.push(osc);
+        });
+
+        // Filtered noise — distant cosmic static
+        const sr = ctx.sampleRate;
+        const buf = ctx.createBuffer(1, sr * 3, sr);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1);
+        const noise = ctx.createBufferSource();
+        noise.buffer = buf;
+        noise.loop = true;
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = 'lowpass';
+        noiseFilter.frequency.value = 90;
+        noiseFilter.Q.value = 0.5;
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.value = 0.22;
+        noise.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(ambientGain);
+        noise.start();
+        ambientNodes.push(noise);
+
+        // Very slow LFO for gentle swell — breathes the volume
+        const lfo = ctx.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = 0.07;
+        const lfoAmt = ctx.createGain();
+        lfoAmt.gain.value = 0.012;
+        lfo.connect(lfoAmt); lfoAmt.connect(ambientGain.gain);
+        lfo.start();
+        ambientNodes.push(lfo);
+
+        scheduleBleep();
+      }
+
+      function scheduleBleep() {
+        const delay = 2800 + Math.random() * 6500;
+        bleepTimer = setTimeout(() => {
+          if (running) { bleep(); scheduleBleep(); }
+        }, delay);
+      }
+
+      // Synthesize a computer bleep: 4 different varieties
+      function bleep(variant) {
+        if (!ctx || !running) return;
+        const v = variant !== undefined ? variant : Math.floor(Math.random() * 5);
+        const now = ctx.currentTime;
+        const out = ctx.createGain();
+        out.connect(ctx.destination);
+
+        if (v === 0) {
+          // Short square blip
+          const o = ctx.createOscillator();
+          o.type = 'square';
+          o.frequency.value = 880 + Math.random() * 440;
+          out.gain.setValueAtTime(0.07, now);
+          out.gain.exponentialRampToValueAtTime(0.0001, now + 0.11);
+          o.connect(out); o.start(now); o.stop(now + 0.11);
+
+        } else if (v === 1) {
+          // Double blip
+          [0, 0.14].forEach(t => {
+            const o = ctx.createOscillator();
+            o.type = 'square';
+            o.frequency.value = 1100 + Math.random() * 300;
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0, now + t);
+            g.gain.linearRampToValueAtTime(0.065, now + t + 0.006);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.09);
+            o.connect(g); g.connect(ctx.destination);
+            o.start(now + t); o.stop(now + t + 0.09);
+          });
+
+        } else if (v === 2) {
+          // Descending sweep
+          const o = ctx.createOscillator();
+          o.type = 'sawtooth';
+          o.frequency.setValueAtTime(1600, now);
+          o.frequency.exponentialRampToValueAtTime(350, now + 0.28);
+          out.gain.setValueAtTime(0.055, now);
+          out.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+          o.connect(out); o.start(now); o.stop(now + 0.28);
+
+        } else if (v === 3) {
+          // Rising chirp
+          const o = ctx.createOscillator();
+          o.type = 'sine';
+          o.frequency.setValueAtTime(500, now);
+          o.frequency.exponentialRampToValueAtTime(2200, now + 0.1);
+          out.gain.setValueAtTime(0.09, now);
+          out.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+          o.connect(out); o.start(now); o.stop(now + 0.18);
+
+        } else {
+          // Triple ascending confirmation tones
+          [0, 0.12, 0.24].forEach((t, i) => {
+            const o = ctx.createOscillator();
+            o.type = 'sine';
+            o.frequency.value = [660, 880, 1100][i];
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0, now + t);
+            g.gain.linearRampToValueAtTime(0.07, now + t + 0.008);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.1);
+            o.connect(g); g.connect(ctx.destination);
+            o.start(now + t); o.stop(now + t + 0.1);
+          });
+        }
+      }
+
+      // Brief ping played on each step transition
+      function stepPing() {
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(520, now);
+        o.frequency.linearRampToValueAtTime(780, now + 0.06);
+        g.gain.setValueAtTime(0.08, now);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(now); o.stop(now + 0.22);
+      }
+
+      // Triumphant complete chime
+      function completeFanfare() {
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        [[0, 523], [0.13, 659], [0.26, 784], [0.42, 1047]].forEach(([t, freq]) => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'sine';
+          o.frequency.value = freq;
+          g.gain.setValueAtTime(0, now + t);
+          g.gain.linearRampToValueAtTime(0.1, now + t + 0.01);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.55);
+          o.connect(g); g.connect(ctx.destination);
+          o.start(now + t); o.stop(now + t + 0.55);
+        });
+      }
+
+      function ensureStarted() {
+        if (started) return;
+        started = true;
+        init();
+        if (ctx.state === 'suspended') ctx.resume();
+        startAmbient();
+      }
+
+      function stop() {
+        if (bleepTimer) clearTimeout(bleepTimer);
+        running = false;
+        ambientNodes.forEach(n => { try { n.stop?.(); } catch (_) {} });
+        ambientNodes = [];
+      }
+
+      return { ensureStarted, bleep, stepPing, completeFanfare, stop };
+    })();
+
+    // Boot audio on first user gesture (browser requirement)
+    document.addEventListener('keydown', () => SpaceAudio.ensureStarted(), { once: true });
+    document.addEventListener('click',   () => SpaceAudio.ensureStarted(), { once: true });
+
+    /* ── TTS via server ──────────────────────────────────────────────────── */
+    const SPEECH_ENABLED = false; // set to true to re-enable ElevenLabs TTS
+
+    async function speak(text, narrator = 'marvin') {
+      setSprite('speaking');
+      isSpeaking = true;
+      if (!SPEECH_ENABLED) {
+        // Text-only mode: just wait a beat proportional to text length, then continue
+        const readTime = Math.min(Math.max(text.length * 18, 600), 1800);
+        await new Promise(r => setTimeout(r, readTime));
+        isSpeaking = false;
+        setSprite('idle');
+        return;
+      }
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(`${SERVER_BASE}/api/speak`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: text.slice(0, 4500), narrator }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error('TTS failed');
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        await new Promise((resolve) => {
+          audio.onended = resolve;
+          audio.onerror = resolve;
+          audio.play().catch(resolve);
+        });
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        // TTS unavailable — short wait for typewriter to be readable, then continue
+        const readTime = Math.min(Math.max(text.length * 28, 800), 2500);
+        await new Promise(r => setTimeout(r, readTime));
+      }
+      isSpeaking = false;
+      setSprite('idle');
+    }
+
+    /* ── Voice input (Web Speech API) ───────────────────────────────────── */
+    const hasSpeech = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+
+    function startListening(onResult) {
+      if (!hasSpeech) return;
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        isListening = true;
+        $voiceIndicator.style.display = 'flex';
+        $micBtn.classList.add('listening');
+        $micBtn.textContent = '◼ Stop';
+        setSprite('listening');
+      };
+
+      recognition.onresult = (e) => {
+        const transcript = e.results[0][0].transcript.trim();
+        $input.value = transcript;
+        stopListening();
+        if (transcript) onResult(transcript);
+      };
+
+      recognition.onerror = () => stopListening();
+      recognition.onend   = () => stopListening();
+      recognition.start();
+    }
+
+    function stopListening() {
+      if (recognition) { try { recognition.stop(); } catch(_){} recognition = null; }
+      isListening = false;
+      $voiceIndicator.style.display = 'none';
+      $micBtn.classList.remove('listening');
+      $micBtn.textContent = '🎤 Voice';
+      setSprite('idle');
+    }
+
+    /* ── OpenAI Marvin response (with fallback) ──────────────────────────── */
+    const conversation = [];
+
+    async function getMarvinResponse(userAnswer, step) {
+      conversation.push({ role: 'user', content: userAnswer });
+
+      // Fallback: use canned step response
+      const fallbackText = step.responds ? step.responds(userAnswer) : null;
+
+      try {
+        const res = await fetch(`${SERVER_BASE}/api/onboard/ask`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: conversation, profile }),
+        });
+        if (!res.ok) throw new Error('ask failed');
+        const data = await res.json();
+        if (!data.fallback && data.text) {
+          conversation.push({ role: 'assistant', content: data.text });
+          return data.text;
+        }
+      } catch (_) {}
+
+      if (fallbackText) {
+        conversation.push({ role: 'assistant', content: fallbackText });
+        return fallbackText;
+      }
+      return "Right. Noted. Let's continue.";
+    }
+
+    /* ── Geocoding (Nominatim, free, no key) ────────────────────────────── */
+    async function geocodeLocation(location) {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`,
+          { headers: { 'Accept-Language': 'en' } }
+        );
+        const data = await res.json();
+        if (data[0]) {
+          return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), city: data[0].display_name.split(',')[0] };
+        }
+      } catch (_) {}
+      return { lat: 51.5, lng: -0.1 }; // Default London
+    }
+
+    /* ── World generation ───────────────────────────────────────────────── */
+    async function startWorldGen() {
+      $worldLoading.style.display = 'flex';
+      document.getElementById('wl-sub-text').textContent =
+        `Rendering ${profile.location || 'your universe'} via Improbability Drive...`;
+
+      // Geocode in parallel with world gen
+      if (!profile.lat) {
+        geocodeLocation(profile.location || 'Earth').then(({ lat, lng }) => {
+          profile.lat = lat;
+          profile.lng = lng;
+        });
+      }
+
+      try {
+        const res = await fetch(`${SERVER_BASE}/api/onboard/world`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ location: profile.location, skills: profile.skills, guide: profile.guide }),
+        });
+        if (!res.ok) throw new Error('world gen failed');
+        const data = await res.json();
+
+        if (data.noKey) {
+          // No Blockade key — use procedural world (already running)
+          await new Promise(r => setTimeout(r, 2200));
+        } else {
+          worldRequestId = data.requestId;
+          await pollForWorld();
+        }
+      } catch (e) {
+        console.warn('[world gen]', e.message);
+        await new Promise(r => setTimeout(r, 2200));
+      }
+
+      $worldLoading.style.display = 'none';
+    }
+
+    async function pollForWorld() {
+      if (!worldRequestId) return;
+      for (let attempt = 0; attempt < 40; attempt++) {
+        await new Promise(r => setTimeout(r, 3000));
+        try {
+          const res = await fetch(`${SERVER_BASE}/api/onboard/world/${worldRequestId}`);
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (data.status === 'complete' && data.url) {
+            profile.worldUrl = data.url;
+            loadSkybox(data.url);
+            return;
+          }
+          if (data.status === 'error') return;
+        } catch (_) {}
+      }
+    }
+
+    /* ── Avatar creation ─────────────────────────────────────────────────── */
+    async function createBuilderAvatar() {
+      try {
+        const res = await fetch(`${SERVER_BASE}/api/onboard/avatar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(profile),
+        });
+        if (!res.ok) throw new Error('avatar failed');
+        return await res.json();
+      } catch (e) {
+        console.warn('[avatar]', e.message);
+        // Return stub avatar
+        const initials = (profile.name || 'B').split(/\s+/).map(n => n[0]).join('').slice(0, 2).toUpperCase();
+        return { id: `builder-local-${Date.now()}`, initials, color: '#c4906a', ...profile };
+      }
+    }
+
+    /* ── Show avatar card ────────────────────────────────────────────────── */
+    function showAvatarCard(avatar) {
+      document.getElementById('ac-avatar-circle').textContent = avatar.initials || '?';
+      document.getElementById('ac-avatar-circle').style.background = avatar.color || '#c4906a';
+      document.getElementById('ac-name').textContent = avatar.name || profile.name || '—';
+      document.getElementById('ac-location').textContent = avatar.location || profile.location || '—';
+      document.getElementById('ac-guide').textContent = GUIDE_LABELS[avatar.guide || profile.guide] || '—';
+      document.getElementById('ac-id').textContent = `ID: ${avatar.id || 'pending'}`;
+
+      const $skills = document.getElementById('ac-skills');
+      $skills.innerHTML = '';
+      (avatar.skills || profile.skills || []).forEach(s => {
+        const chip = document.createElement('div');
+        chip.className = 'ac-skill-chip';
+        chip.textContent = s;
+        $skills.appendChild(chip);
+      });
+
+      // Build Monitor URL with encoded builder pin so it appears on the globe
+      const monitorPin = {
+        id: avatar.id || `builder-${Date.now()}`,
+        pinType: 'builder',
+        name: avatar.name || profile.name,
+        lat: profile.lat || avatar.lat || 51.5,
+        lng: profile.lng || avatar.lng || -0.1,
+        city: profile.location,
+        country: '',
+        status: 'active',
+        summary: `Building ${GUIDE_LABELS[profile.guide] || profile.guide} on OpenSERV stack. Just joined the Pan Galactic Builders Programme.`,
+        person: { name: avatar.name || profile.name, initials: avatar.initials || '?', org: 'Pan Galactic Builders' },
+        guideOutput: GUIDE_LABELS[profile.guide] || profile.guide,
+        guideStatus: 'planning',
+        hoursLogged: 0,
+        skills: profile.skills || [],
+        github: { username: profile.github || '', recentCommits: 0, streak: 0, linesAdded: 0 },
+        token: { status: 'planning', ticker: '', launchpad: 'OpenSERV' },
+        buildersGrant: { status: 'applied' },
+        marketing: { latestPost: `${avatar.name || profile.name} just joined the Pan Galactic Builders Programme!` },
+        links: {
+          github: profile.github ? `https://github.com/${profile.github}` : null,
+          openserv: 'https://platform.openserv.ai',
+        },
+        _joinedAt: new Date().toISOString(),
+        _new: true,
+      };
+
+      try {
+        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(monitorPin))));
+        document.getElementById('ac-monitor-btn').href = `${MONITOR_URL}?builder=${encoded}`;
+      } catch (_) {
+        document.getElementById('ac-monitor-btn').href = MONITOR_URL;
+      }
+
+      // Build dashboard URL with full profile encoded
+      const dashboardProfile = {
+        ...avatar,
+        lat: profile.lat,
+        lng: profile.lng,
+        worldUrl: profile.worldUrl || null,
+        _edits: {},
+      };
+      let dashUrl = 'builder.html';
+      try {
+        const dashEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(dashboardProfile))));
+        dashUrl = `builder.html?p=${dashEncoded}`;
+      } catch (encErr) {
+        console.warn('[onboard] Profile encoding failed, redirecting without profile:', encErr);
+      }
+      const $dashBtn = document.getElementById('ac-dashboard-btn');
+      $dashBtn.href = dashUrl;
+
+      // Countdown then auto-redirect
+      let secs = 4;
+      $dashBtn.textContent = `Loading Command Deck… (${secs}s)`;
+      const countdown = setInterval(() => {
+        secs--;
+        if (secs <= 0) {
+          clearInterval(countdown);
+          window.location.href = dashUrl;
+        } else {
+          $dashBtn.textContent = `Loading Command Deck… (${secs}s)`;
+        }
+      }, 1000);
+
+      // Show OASIS credentials
+      const oasis = avatar.oasis;
+      const $oasisBlock = document.getElementById('ac-oasis-block');
+      if (oasis && oasis.status !== 'skipped') {
+        $oasisBlock.style.display = '';
+        const statusMap = {
+          ok:             '✓ Avatar registered on OASIS',
+          verify_email:   '✓ Registered — check your email to verify',
+          username_taken: '⚠ Username taken — try oasisweb4.one/signup',
+          error:          '⚠ Registration error — try oasisweb4.one/signup',
+          pending:        '… Registering…',
+        };
+        document.getElementById('ac-oasis-status').textContent =
+          statusMap[oasis.status] || oasis.status;
+        document.getElementById('ac-oasis-username').textContent = oasis.username || '—';
+        document.getElementById('ac-oasis-password').textContent = oasis.password || '—';
+      }
+
+      $avatarCard.classList.add('visible');
+      $doneGlow.classList.add('visible');
+      SpaceAudio.completeFanfare();
+    }
+
+    /* ── Chips UI ────────────────────────────────────────────────────────── */
+    function showChips(options, multiSelect, onConfirm) {
+      $chipsArea.innerHTML = '';
+      $chipsArea.style.display = 'flex';
+      document.getElementById('dialogue-wrap').style.opacity = '0.3';
+      const selected = new Set();
+
+      options.forEach(opt => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = opt.label;
+        chip.type = 'button';
+        chip.addEventListener('click', () => {
+          if (multiSelect) {
+            chip.classList.toggle('selected');
+            if (selected.has(opt.id)) selected.delete(opt.id);
+            else selected.add(opt.id);
+
+            // Show confirm button if any selected
+            let confirmBtn = $chipsArea.querySelector('.chip-confirm');
+            if (selected.size > 0 && !confirmBtn) {
+              confirmBtn = document.createElement('button');
+              confirmBtn.className = 'chip chip-confirm';
+              confirmBtn.textContent = '✓ Confirm';
+              confirmBtn.type = 'button';
+              confirmBtn.addEventListener('click', () => onConfirm([...selected]));
+              $chipsArea.appendChild(confirmBtn);
+            } else if (selected.size === 0 && confirmBtn) {
+              confirmBtn.remove();
+            }
+          } else {
+            // Single select — confirm immediately
+            onConfirm([opt.id]);
+          }
+        });
+        $chipsArea.appendChild(chip);
+      });
+    }
+
+    function hideChips() {
+      $chipsArea.innerHTML = '';
+      $chipsArea.style.display = 'none';
+      document.getElementById('dialogue-wrap').style.opacity = '1';
+    }
+
+    /* ── Input control ───────────────────────────────────────────────────── */
+    function showInput(placeholder, hint, optional) {
+      $inputArea.style.display = 'flex';
+      $input.placeholder = placeholder || 'Type your answer...';
+      $hint.textContent = hint || '';
+      $input.value = '';
+      $input.focus();
+      if (optional) $hint.textContent = (hint || '') + (hint ? ' — ' : '') + 'press → to skip';
+    }
+
+    function hideInput() {
+      $inputArea.style.display = 'none';
+      $hint.textContent = '';
+    }
+
+    /* ── Main step runner ────────────────────────────────────────────────── */
+    async function runStep(stepId) {
+      const step = getStep(stepId);
+      if (!step) return;
+      SpaceAudio.stepPing();
+
+      currentStepIdx = getStepIndex(stepId);
+      $sbStep.textContent = step.statusText || stepId.toUpperCase();
+
+      const speakableIdx = SPEAKABLE_STEPS.findIndex(s => s.id === stepId);
+      if (speakableIdx >= 0) updateProgress(stepId);
+
+      // Hide all interactive areas by default
+      hideInput();
+      hideChips();
+      $voiceIndicator.style.display = 'none';
+
+      // ── Processing steps ──────────────────────────────────────────────
+      if (step.type === 'processing') {
+        $cursor.style.display = 'none';
+
+        if (stepId === 'world_gen') {
+          setSprite('thinking');
+          await startWorldGen();
+          setSprite('idle');
+          await runStep(step.next);
+          return;
+        }
+
+        if (stepId === 'creating') {
+          $worldLoading.style.display = 'flex';
+          document.getElementById('wl-sub-text').textContent = 'Creating your avatar. Notifying the network...';
+          setSprite('thinking');
+          createdAvatar = await createBuilderAvatar(); // store for use in complete step
+          await new Promise(r => setTimeout(r, 1200));
+          $worldLoading.style.display = 'none';
+          setSprite('idle');
+          await runStep(step.next);
+          return;
+        }
+
+        await runStep(step.next);
+        return;
+      }
+
+      // ── Speak-only steps (auto-advance, no user input) ───────────────
+      if (step.type === 'speak') {
+        const marvinText = step.marvinText || '';
+        if (marvinText) {
+          $cursor.style.display = 'inline';
+          typewrite(marvinText);
+          await speak(marvinText);
+        }
+        await runStep(step.next);
+        return;
+      }
+
+      // ── Complete step ─────────────────────────────────────────────────
+      if (step.type === 'complete') {
+        const marvinText = step.marvinText || '';
+        if (marvinText) {
+          $cursor.style.display = 'inline';
+          typewrite(marvinText);
+          await speak(marvinText);
+        }
+        setSprite('done');
+        hideInput();
+        hideChips();
+        // Use avatar already created in the processing step (don't call API twice)
+        const avatar = createdAvatar || await createBuilderAvatar();
+        showAvatarCard(avatar);
+        return;
+      }
+
+      // ── Chips step (multi / single select) ───────────────────────────
+      if (step.type === 'chips' || step.type === 'select') {
+        const marvinText = step.marvinText || '';
+        if (marvinText) {
+          $cursor.style.display = 'inline';
+          typewrite(marvinText);
+          await speak(marvinText);
+        }
+        const multiSelect = step.type === 'chips';
+        showChips(step.options, multiSelect, async (selected) => {
+          hideChips();
+          hideInput();
+          const value = multiSelect ? selected : selected[0];
+          profile[step.field] = value;
+
+          // Marvin reacts
+          const reaction = multiSelect
+            ? `${selected.length} skill${selected.length > 1 ? 's' : ''}. I suppose that covers the basics.`
+            : `${GUIDE_LABELS[value] || value}. An interesting choice. I've already calculated the probability of completion.`;
+          typewrite(reaction);
+          await speak(reaction);
+
+          await runStep(step.next);
+        });
+        return;
+      }
+
+      // ── Listen / text step ────────────────────────────────────────────
+      if (step.type === 'listen') {
+        const marvinText = step.marvinText || '';
+        if (marvinText) {
+          $cursor.style.display = 'inline';
+          typewrite(marvinText);
+          await speak(marvinText);
+        }
+        showInput(step.placeholder, step.hint, step.optional);
+
+        const handleAnswer = async (value) => {
+          if (!value && !step.optional) return;
+          hideInput();
+          stopListening();
+
+          if (value) profile[step.field] = value;
+
+          // Get Marvin's response (for listen steps without marvinText)
+          if (!marvinText) {
+            const responseText = await getMarvinResponse(value || '(skipped)', step);
+            typewrite(responseText);
+            await speak(responseText);
+          }
+
+          await runStep(step.next);
+        };
+
+        $sendBtn.onclick = () => {
+          const v = $input.value.trim();
+          if (!v && !step.optional) { $input.classList.add('shake'); setTimeout(() => $input.classList.remove('shake'), 400); return; }
+          handleAnswer(v);
+        };
+
+        $input.onkeydown = (e) => {
+          if (e.key === 'Enter') $sendBtn.onclick();
+        };
+
+        $micBtn.onclick = () => {
+          if (isListening) { stopListening(); return; }
+          startListening(handleAnswer);
+        };
+
+        if (!hasSpeech) {
+          $micBtn.style.display = 'none';
+        }
+      }
+    }
+
+    /* ── Reset ───────────────────────────────────────────────────────────── */
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      window.location.reload();
+    });
+
+    /* ── Boot ────────────────────────────────────────────────────────────── */
+    buildProgress();
+    // Audio will start on first user gesture; also try immediately in case context is already unlocked
+    SpaceAudio.ensureStarted();
+    runStep('welcome');
+  </script>
 </body>
 </html>
