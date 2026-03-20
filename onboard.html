@@ -1017,7 +1017,7 @@
         // Master fader — fades in slowly
         ambientGain = ctx.createGain();
         ambientGain.gain.setValueAtTime(0, ctx.currentTime);
-        ambientGain.gain.linearRampToValueAtTime(0.045, ctx.currentTime + 6);
+        ambientGain.gain.linearRampToValueAtTime(0.022, ctx.currentTime + 8);
         ambientGain.connect(ctx.destination);
 
         // Low sub drone (two slightly detuned oscillators create a slow beating effect)
@@ -1064,7 +1064,7 @@
       }
 
       function scheduleBleep() {
-        const delay = 2800 + Math.random() * 6500;
+        const delay = 10000 + Math.random() * 14000; // every 10–24s
         bleepTimer = setTimeout(() => {
           if (running) { bleep(); scheduleBleep(); }
         }, delay);
@@ -1083,7 +1083,7 @@
           const o = ctx.createOscillator();
           o.type = 'square';
           o.frequency.value = 880 + Math.random() * 440;
-          out.gain.setValueAtTime(0.07, now);
+          out.gain.setValueAtTime(0.013, now);
           out.gain.exponentialRampToValueAtTime(0.0001, now + 0.11);
           o.connect(out); o.start(now); o.stop(now + 0.11);
 
@@ -1095,7 +1095,7 @@
             o.frequency.value = 1100 + Math.random() * 300;
             const g = ctx.createGain();
             g.gain.setValueAtTime(0, now + t);
-            g.gain.linearRampToValueAtTime(0.065, now + t + 0.006);
+            g.gain.linearRampToValueAtTime(0.011, now + t + 0.006);
             g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.09);
             o.connect(g); g.connect(ctx.destination);
             o.start(now + t); o.stop(now + t + 0.09);
@@ -1107,7 +1107,7 @@
           o.type = 'sawtooth';
           o.frequency.setValueAtTime(1600, now);
           o.frequency.exponentialRampToValueAtTime(350, now + 0.28);
-          out.gain.setValueAtTime(0.055, now);
+          out.gain.setValueAtTime(0.010, now);
           out.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
           o.connect(out); o.start(now); o.stop(now + 0.28);
 
@@ -1117,7 +1117,7 @@
           o.type = 'sine';
           o.frequency.setValueAtTime(500, now);
           o.frequency.exponentialRampToValueAtTime(2200, now + 0.1);
-          out.gain.setValueAtTime(0.09, now);
+          out.gain.setValueAtTime(0.014, now);
           out.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
           o.connect(out); o.start(now); o.stop(now + 0.18);
 
@@ -1129,7 +1129,7 @@
             o.frequency.value = [660, 880, 1100][i];
             const g = ctx.createGain();
             g.gain.setValueAtTime(0, now + t);
-            g.gain.linearRampToValueAtTime(0.07, now + t + 0.008);
+            g.gain.linearRampToValueAtTime(0.012, now + t + 0.008);
             g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.1);
             o.connect(g); g.connect(ctx.destination);
             o.start(now + t); o.stop(now + t + 0.1);
@@ -1146,7 +1146,7 @@
         o.type = 'sine';
         o.frequency.setValueAtTime(520, now);
         o.frequency.linearRampToValueAtTime(780, now + 0.06);
-        g.gain.setValueAtTime(0.08, now);
+        g.gain.setValueAtTime(0.022, now);
         g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
         o.connect(g); g.connect(ctx.destination);
         o.start(now); o.stop(now + 0.22);
@@ -1162,7 +1162,7 @@
           o.type = 'sine';
           o.frequency.value = freq;
           g.gain.setValueAtTime(0, now + t);
-          g.gain.linearRampToValueAtTime(0.1, now + t + 0.01);
+          g.gain.linearRampToValueAtTime(0.045, now + t + 0.01);
           g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.55);
           o.connect(g); g.connect(ctx.destination);
           o.start(now + t); o.stop(now + t + 0.55);
